@@ -1,0 +1,13 @@
+#
+# AVL6261 dvb driver configuration
+#
+
+menu "AVL6261 dvb driver"
+
+config AVL6261
+	tristate "AVL6261 dvb driver"
+	default m
+	select DVB_CORE
+	help
+		Select to enable AVL6261 dvb driver.
+endmenu
