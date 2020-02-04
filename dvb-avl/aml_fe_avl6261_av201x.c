@@ -195,9 +195,12 @@ static int avl6261_fe_init(struct aml_dvb *advb, struct platform_device *pdev, s
     ret = -ENOMEM;
     goto err_resource;
   }
-  tuner_priv = (struct av201x_priv *)fe->fe->tuner_priv;
+  
 #ifdef USE_AVL_201X
+  tuner_priv = (struct av201x_avl_priv *)fe->fe->tuner_priv;
   demod_priv->chip->pTuner = tuner_priv->pTuner;
+#else
+  tuner_priv = (struct av201x_priv *)fe->fe->tuner_priv;
 #endif
 
   pr_inf("AVL6261 and AV201X attached!\n");

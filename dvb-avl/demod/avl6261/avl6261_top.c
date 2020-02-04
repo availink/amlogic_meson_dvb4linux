@@ -18,7 +18,7 @@
  *    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <linux/slab.h>
+
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -27,9 +27,7 @@
 #include <linux/string.h>
 #include <linux/bitrev.h>
 
-#include <media/dvb_frontend.h>
 #include "avl6261.h"
-
 #include "AVL62X1_API.h"
 #include "AVL_Tuner.h"
 
@@ -46,7 +44,7 @@ MODULE_PARM_DESC(debug_avl, "\n\t\t Enable AVL demodulator debug information");
 static int debug_avl;
 module_param(debug_avl, int, 0644);
 
-AVL_Tuner default_avl_tuner = {
+struct AVL_Tuner default_avl_tuner = {
   .ucBlindScanMode = 0,
   .vpMorePara = NULL,
   .fpInitializeFunc = NULL,
@@ -64,12 +62,12 @@ AVL_Tuner default_avl_tuner = {
 
 static int InitErrorStat_Demod(struct avl6261_priv *priv)
 {
-  AVL_ErrorCode r = AVL_EC_OK;
-  AVL62X1_ErrorStatConfig stErrorStatConfig;
-  struct AVL62X1_BERConfig stBERConfig;
+  uint16_t r = AVL_EC_OK;
+  struct avl62x1_error_stats_config stErrorStatConfig;
+  struct avl62x1_ber_config stBERConfig;
 
-  stErrorStatConfig.eErrorStatMode = AVL62X1_ERROR_STAT_AUTO;
-  stErrorStatConfig.eAutoErrorStatType = AVL62X1_ERROR_STAT_TIME;
+  stErrorStatConfig.eErrorStatMode = AVL62X1_ERROR_STATS_AUTO;
+  stErrorStatConfig.eAutoErrorStatType = AVL62X1_ERROR_STATS_TIME;
   stErrorStatConfig.uiTimeThresholdMs = 3000;
   stErrorStatConfig.uiNumberThresholdByte = 0;
 
@@ -87,8 +85,8 @@ static int InitErrorStat_Demod(struct avl6261_priv *priv)
 static int avl6261_init_dvbs(struct dvb_frontend *fe)
 {
   struct avl6261_priv *priv = fe->demodulator_priv;
-  struct AVL62X1_Diseqc_Para Diseqc_para;
-  AVL_ErrorCode r = AVL_EC_OK;
+  struct avl62x1_diseqc_params Diseqc_para;
+  uint16_t r = AVL_EC_OK;
 
   Diseqc_para.uiToneFrequencyKHz = 22;
   Diseqc_para.eTXGap = AVL62X1_DTXG_15ms;
@@ -115,7 +113,7 @@ static int avl6261_init_dvbs(struct dvb_frontend *fe)
 static int avl6261_i2c_gate_ctrl(struct dvb_frontend *fe, int enable)
 {
   struct avl6261_priv *priv = fe->demodulator_priv;
-  AVL_ErrorCode ret = AVL_EC_OK;
+  uint16_t ret = AVL_EC_OK;
 
   dbg_avl("%s: %d\n", __func__, enable);
 
@@ -134,9 +132,9 @@ static int avl6261_set_dvbs(struct dvb_frontend *fe)
 {
   struct avl6261_priv *priv = fe->demodulator_priv;
   struct dtv_frontend_properties *c = &fe->dtv_property_cache;
-  AVL_ErrorCode r = AVL_EC_OK;
-  struct AVL62X1_CarrierInfo CarrierInfo;
-  struct AVL62X1_StreamInfo StreamInfo;
+  uint16_t r = AVL_EC_OK;
+  struct avl62x1_carrier_info CarrierInfo;
+  struct avl62x1_stream_info StreamInfo;
   dbg_avl("Freq:%d khz,sym:%d hz", c->frequency, c->symbol_rate);
 
   CarrierInfo.m_carrier_index = 0;
@@ -156,7 +154,7 @@ static int avl6261_set_dvbs(struct dvb_frontend *fe)
   CarrierInfo.m_coderate.m_dvbs2_code_rate = 0;
   CarrierInfo.m_dvbs2_ccm_acm = 0; //1:CCM, 0:ACM
 
-  StreamInfo.m_carrier_index = 0; //index of carrier (AVL62X1_CarrierInfo.m_CarrierIndex) that this stream is in
+  StreamInfo.m_carrier_index = 0; //index of carrier (avl62x1_carrier_info.m_CarrierIndex) that this stream is in
   StreamInfo.m_stream_type = AVL62X1_TRANSPORT;
   StreamInfo.m_ISI = c->stream_id;
   StreamInfo.m_PLP_ID = 0;         // use when lock TP
@@ -171,9 +169,9 @@ static int avl6261_set_dvbmode(struct dvb_frontend *fe,
                                enum fe_delivery_system delsys)
 {
   struct avl6261_priv *priv = fe->demodulator_priv;
-  AVL_ErrorCode ret = AVL_EC_OK;
-  AVL_ErrorCode r = AVL_EC_OK;
-  struct AVL62X1_VerInfo ver_info;
+  uint16_t ret = AVL_EC_OK;
+  uint16_t r = AVL_EC_OK;
+  struct avl62x1_ver_info ver_info;
 
   /* already in desired mode */
   if (priv->delivery_system == delsys)
@@ -197,7 +195,7 @@ static int avl6261_set_dvbmode(struct dvb_frontend *fe,
   priv->delivery_system = delsys;
 
   //Reset Demod
-  r = AVL_IBSP_Reset();
+  r = avl_bsp_reset();
   if (AVL_EC_OK != r)
   {
     dbg_avl("Failed to Resed demod via BSP!\n");
@@ -241,13 +239,13 @@ static int avl6261_set_dvbmode(struct dvb_frontend *fe,
   return ret;
 }
 
-AVL_ErrorCode AVL_SX_DiseqcSendCmd(struct avl6261_priv *priv, AVL_puchar pCmd, u8 CmdSize)
+uint16_t AVL_SX_DiseqcSendCmd(struct avl6261_priv *priv, uint8_t *cmd, uint8_t cmdsize)
 {
-  AVL_ErrorCode r = AVL_EC_OK;
-  struct AVL62X1_Diseqc_TxStatus TxStatus;
-  dbg_avl(" %*ph", CmdSize, pCmd);
+  uint16_t r = AVL_EC_OK;
+  struct avl62x1_diseqc_tx_status TxStatus;
+  dbg_avl(" %*ph", cmdsize, cmd);
 
-  r = AVL62X1_IDiseqc_SendModulationData(pCmd, CmdSize, priv->chip);
+  r = AVL62X1_IDiseqc_SendModulationData(cmd, cmdsize, priv->chip);
   if (r != AVL_EC_OK)
   {
     printk("AVL_SX_DiseqcSendCmd failed !\n");
@@ -317,7 +315,7 @@ static int avl6261_set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 static int avl6261_set_voltage(struct dvb_frontend *fe, enum fe_sec_voltage voltage)
 {
   struct avl6261_priv *priv = fe->demodulator_priv;
-  AVL62X1_GPIO_Pin_Value pwr, vol;
+  avl62x1_gpio_pin_value pwr, vol;
   int ret;
 
   dbg_avl("volt: %d", voltage);
@@ -351,9 +349,9 @@ static int avl6261_read_status(struct dvb_frontend *fe, enum fe_status *status)
   struct avl6261_priv *priv = fe->demodulator_priv;
   struct dtv_frontend_properties *c = &fe->dtv_property_cache;
   int ret = 0;
-  AVL62X1_LockStatus lock = 0;
-  AVL_int16 SNR_x100db = 0;
-  AVL_int16 SignalStrength = 0;
+  avl62x1_lock_status lock = 0;
+  int16_t SNR_x100db = 0;
+  int16_t SignalStrength = 0;
 
   switch (priv->delivery_system)
   {
@@ -584,7 +582,7 @@ struct dvb_frontend *avl6261_attach(struct avl6261_config *config,
                                     struct i2c_adapter *i2c)
 {
   struct avl6261_priv *priv;
-  AVL_ErrorCode ret;
+  uint16_t ret;
   u32 id;
   int fw_status;
   unsigned int fw_maj, fw_min, fw_build;
@@ -604,13 +602,13 @@ struct dvb_frontend *avl6261_attach(struct avl6261_config *config,
   priv->config = config;
   priv->i2c = i2c;
   priv->delivery_system = -1;
-  priv->chip = kzalloc(sizeof(struct AVL62X1_Chip), GFP_KERNEL);
+  priv->chip = kzalloc(sizeof(struct avl62x1_chip), GFP_KERNEL);
   if (priv->chip == NULL)
     goto err1;
   dbg_avl("chip alloc'ed = %llx", (unsigned long long int)priv->chip);
   
   //                               I2C slave address (8b)                       Demod ID (3b)
-  priv->chip->usI2CAddr = ((AVL_uint16)config->demod_address) | (((AVL_uint16)(config->i2c_id & 0x7)) << 8);
+  priv->chip->usI2CAddr = ((uint16_t)config->demod_address) | (((uint16_t)(config->i2c_id & 0x7)) << 8);
   dbg_avl("usI2CAddr = %x", priv->chip->usI2CAddr);
   priv->chip->e_Xtal = AVL62X1_RefClk_27M;
   //priv->chip->pPatchData = ucPatchData;
@@ -626,7 +624,7 @@ struct dvb_frontend *avl6261_attach(struct avl6261_config *config,
   dbg_avl("chip initialized");
 
   // associate i2c_id/slaveAddr with i2c_adapter
-  AVL_IBSP_I2C_Adapter(priv->chip->usI2CAddr, i2c);
+  avl_bsp_assoc_i2c_adapter(priv->chip->usI2CAddr, i2c);
   dbg_avl("i2c associated\n");
 
   /* get chip id */

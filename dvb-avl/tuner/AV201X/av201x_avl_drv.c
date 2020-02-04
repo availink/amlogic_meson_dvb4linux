@@ -22,7 +22,6 @@
 
 e_AV201X_Model g_eAV201X_TunerModel = e_AV201X_Model_AV2018;
 
-extern AVL_semaphore AVL_IBSP_I2C_sem;
 
 static unsigned char gs_u8AV201X_init_regs[50] =
     {
@@ -44,18 +43,18 @@ static s_AV201X_Params gs_AV201X_Params = {
     AV201X_DEFAULT_LOOP_THROUGH,
     AV201X_DEFAULT_FT_STATE};
 
-AVL_uint32 AV201X_GetLockStatus(struct AVL_Tuner *pTuner)
+uint32_t AV201X_GetLockStatus(struct AVL_Tuner *pTuner)
 {
-  AVL_uint32 r = 0;
-  AVL_uchar uilock = 11;
-  AVL_uint16 size;
+  uint32_t r = 0;
+  uint8_t uilock = 11;
+  uint16_t size;
 
   size = 1;
 
-  r = AVL_IBSP_WaitSemaphore(&(AVL_IBSP_I2C_sem));
-  r |= AVL_IBSP_I2C_Write((AVL_uchar)(pTuner->usTunerI2CAddr), &uilock, &size);
-  r |= AVL_IBSP_I2C_Read((AVL_uchar)(pTuner->usTunerI2CAddr), &uilock, &size);
-  r |= AVL_IBSP_ReleaseSemaphore(&(AVL_IBSP_I2C_sem));
+  r = avl_bsp_wait_semaphore(&(avl_bsp_i2c_sem));
+  r |= avl_bsp_i2c_write((uint8_t)(pTuner->usTunerI2CAddr), &uilock, &size);
+  r |= avl_bsp_i2c_read((uint8_t)(pTuner->usTunerI2CAddr), &uilock, &size);
+  r |= avl_bsp_release_semaphore(&(avl_bsp_i2c_sem));
 
   if (0 == r)
   {
@@ -72,9 +71,9 @@ AVL_uint32 AV201X_GetLockStatus(struct AVL_Tuner *pTuner)
   return (r);
 }
 
-AVL_uint32 AV201X_Initialize(struct AVL_Tuner *pTuner)
+uint32_t AV201X_Initialize(struct AVL_Tuner *pTuner)
 {
-  AVL_uint32 r = 0;
+  uint32_t r = 0;
 
   if (gs_AV201X_Params.u1UseDefaults)
   {
@@ -124,16 +123,16 @@ AVL_uint32 AV201X_Initialize(struct AVL_Tuner *pTuner)
 
 void AV201X_Time_DELAY_MS(UINT32 ms)
 {
-  AVL_IBSP_Delay(ms);
+  avl_bsp_delay(ms);
 }
 
-AVL_uint32 AV201X_I2C_write(struct AVL_Tuner *pTuner, UINT8 reg_start, UINT8 *buff, UINT8 len)
+uint32_t AV201X_I2C_write(struct AVL_Tuner *pTuner, UINT8 reg_start, UINT8 *buff, UINT8 len)
 {
-  AVL_uint32 r = 0;
-  //AVL_uint16 uiTimeOut = 0;
-  static AVL_uchar ucTemp[50];
+  uint32_t r = 0;
+  //uint16_t uiTimeOut = 0;
+  static uint8_t ucTemp[50];
   int i = 0;
-  AVL_uint16 size;
+  uint16_t size;
 
   ucTemp[0] = reg_start;
 
@@ -144,45 +143,45 @@ AVL_uint32 AV201X_I2C_write(struct AVL_Tuner *pTuner, UINT8 reg_start, UINT8 *bu
 
   size = len + 1;
 
-  r = AVL_IBSP_WaitSemaphore(&(AVL_IBSP_I2C_sem));
-  r = AVL_IBSP_I2C_Write((AVL_uchar)pTuner->usTunerI2CAddr, ucTemp, &size);
-  r = AVL_IBSP_ReleaseSemaphore(&(AVL_IBSP_I2C_sem));
+  r = avl_bsp_wait_semaphore(&(avl_bsp_i2c_sem));
+  r = avl_bsp_i2c_write((uint8_t)pTuner->usTunerI2CAddr, ucTemp, &size);
+  r = avl_bsp_release_semaphore(&(avl_bsp_i2c_sem));
 
   return (r);
 }
 
 /* read one register */
-AVL_uint32 AV201X_I2C_read(struct AVL_Tuner *pTuner, UINT8 addr, UINT8 *data)
+uint32_t AV201X_I2C_read(struct AVL_Tuner *pTuner, UINT8 addr, UINT8 *data)
 {
-  AVL_uint32 r = 0;
-  AVL_uint16 size = 1;
-  AVL_uchar b = addr;
+  uint32_t r = 0;
+  uint16_t size = 1;
+  uint8_t b = addr;
 
-  r = AVL_IBSP_WaitSemaphore(&(AVL_IBSP_I2C_sem));
-  r |= AVL_IBSP_I2C_Write((AVL_uchar)(pTuner->usTunerI2CAddr), &b, &size);
-  r |= AVL_IBSP_I2C_Read((AVL_uchar)(pTuner->usTunerI2CAddr), data, &size);
-  r |= AVL_IBSP_ReleaseSemaphore(&(AVL_IBSP_I2C_sem));
+  r = avl_bsp_wait_semaphore(&(avl_bsp_i2c_sem));
+  r |= avl_bsp_i2c_write((uint8_t)(pTuner->usTunerI2CAddr), &b, &size);
+  r |= avl_bsp_i2c_read((uint8_t)(pTuner->usTunerI2CAddr), data, &size);
+  r |= avl_bsp_release_semaphore(&(avl_bsp_i2c_sem));
 
   return r;
 }
 
-AVL_uint32 AV201X_GetMaxLPF(struct AVL_Tuner *pTuner, AVL_uint32 *puiMaxLPFHz)
+uint32_t AV201X_GetMaxLPF(struct AVL_Tuner *pTuner, uint32_t *puiMaxLPFHz)
 {
-  AVL_uint32 r = 0;
-  *puiMaxLPFHz = (AVL_uint32)(AV201X_FILTER_BANDWIDTH_MAX * 1000 * 1000);
+  uint32_t r = 0;
+  *puiMaxLPFHz = (uint32_t)(AV201X_FILTER_BANDWIDTH_MAX * 1000 * 1000);
   return (r);
 }
 
-AVL_uint32 AV201X_GetMinLPF(struct AVL_Tuner *pTuner, AVL_uint32 *puiMinLPFHz)
+uint32_t AV201X_GetMinLPF(struct AVL_Tuner *pTuner, uint32_t *puiMinLPFHz)
 {
-  AVL_uint32 r = 0;
-  *puiMinLPFHz = (AVL_uint32)(AV201X_FIX_LPF_MIN * 1000 * 1000);
+  uint32_t r = 0;
+  *puiMinLPFHz = (uint32_t)(AV201X_FIX_LPF_MIN * 1000 * 1000);
   return (r);
 }
 
-AVL_uint32 AV201X_Lock(struct AVL_Tuner *pTuner)
+uint32_t AV201X_Lock(struct AVL_Tuner *pTuner)
 {
-  AVL_uint32 r = 0;
+  uint32_t r = 0;
   unsigned int u32Frequency_kHz;
   unsigned int u32FilterBandwidth_kHz;
   unsigned int fracN;

@@ -43,7 +43,7 @@ struct avl6261_priv
   struct avl6261_config *config;
   struct dvb_frontend frontend;
   enum fe_delivery_system delivery_system;
-  struct AVL62X1_Chip *chip;
+  struct avl62x1_chip *chip;
   const struct firmware *fw;
 };
 

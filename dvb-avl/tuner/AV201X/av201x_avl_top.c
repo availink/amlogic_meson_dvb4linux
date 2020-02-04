@@ -35,7 +35,7 @@ static int debug_av = 1;
 /* write one register */
 static int av201x_wr(struct AVL_Tuner * pTuner, u8 addr, u8 data)
 {
-  AVL_uint32 r = 0;
+  uint32_t r = 0;
   r |=  AV201X_I2C_write(pTuner, addr, &data, 1);
 	return r;
 }
@@ -206,7 +206,7 @@ struct dvb_frontend *av201x_avl_attach(struct dvb_frontend *fe,
   priv->pTuner->fpGetMaxGainVoltage = NULL;
   priv->pTuner->fpGetRFFreqStepSize = NULL;
 
-	AVL_IBSP_I2C_Adapter(0, i2c);
+	avl_bsp_assoc_i2c_adapter(0, i2c);
   
 	dev_info(&priv->i2c->dev,
 		"%s: Airoha Technology AV201x successfully attached\n",

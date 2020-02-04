@@ -30,31 +30,31 @@ extern "C"
 
 #define AVL_TUNER_EC_OK 0 // There is no error.
 
-  typedef struct AVL_Tuner
+  struct AVL_Tuner
   {
-    AVL_uint16 usTunerI2CAddr;
-    AVL_uchar ucTunerLocked; //1 Lock;   0 unlock
+    uint16_t usTunerI2CAddr;
+    uint8_t ucTunerLocked; //1 Lock;   0 unlock
 
-    AVL_uint32 uiRFFrequencyHz;
-    AVL_uint32 uiLPFHz; //only valid for satellite tuner
+    uint32_t uiRFFrequencyHz;
+    uint32_t uiLPFHz; //only valid for satellite tuner
 
-    AVL_uchar ucBlindScanMode;
+    uint8_t ucBlindScanMode;
 
     void *vpMorePara;
 
-    AVL_uint32 (*fpInitializeFunc)(struct AVL_Tuner *);
-    AVL_uint32 (*fpLockFunc)(struct AVL_Tuner *);
-    AVL_uint32 (*fpGetLockStatusFunc)(struct AVL_Tuner *);
-    AVL_uint32 (*fpGetRFStrength)(struct AVL_Tuner *, AVL_int32 *);
+    uint32_t (*fpInitializeFunc)(struct AVL_Tuner *);
+    uint32_t (*fpLockFunc)(struct AVL_Tuner *);
+    uint32_t (*fpGetLockStatusFunc)(struct AVL_Tuner *);
+    uint32_t (*fpGetRFStrength)(struct AVL_Tuner *, int32_t *);
 
     //Maximum tuner low pass filter bandwidth in Hz
-    AVL_uint32 (*fpGetMaxLPF)(struct AVL_Tuner *, AVL_uint32 *);
+    uint32_t (*fpGetMaxLPF)(struct AVL_Tuner *, uint32_t *);
 
     //Minimum tuner low pass filter bandwidth in Hz
-    AVL_uint32 (*fpGetMinLPF)(struct AVL_Tuner *, AVL_uint32 *);
+    uint32_t (*fpGetMinLPF)(struct AVL_Tuner *, uint32_t *);
 
     //Low pass filter bandwidth step size in Hz
-    AVL_uint32 (*fpGetLPFStepSize)(struct AVL_Tuner *, AVL_uint32 *);
+    uint32_t (*fpGetLPFStepSize)(struct AVL_Tuner *, uint32_t *);
 
     //Tuner AGC gain slope in dB per Volt (dB/V).
     //Tuners with non-inverted AGC sense have a positive slope.
@@ -62,22 +62,22 @@ extern "C"
     //If the gain slope is not known, implement a function that
     //  returns 1 if the AGC sense is non-inverted,
     //  and returns -1 if the AGC sense is inverted.
-    AVL_uint32 (*fpGetAGCSlope)(struct AVL_Tuner *, AVL_int32 *);
+    uint32_t (*fpGetAGCSlope)(struct AVL_Tuner *, int32_t *);
 
     //Voltage at which gain reaches minimum value.  Voltage in millivolts.
     //For a tuner with non-inverted sense (positive slope), this will be a small value.
     //For a tuner with inverted sense (negative slope), this will be a large value.
-    AVL_uint32 (*fpGetMinGainVoltage)(struct AVL_Tuner *, AVL_uint32 *);
+    uint32_t (*fpGetMinGainVoltage)(struct AVL_Tuner *, uint32_t *);
 
     //Voltage at which gain reaches its maximum value. Voltage in millivolts.
     //For a tuner with non-inverted sense (positive slope), this will be a large value.
     //For a tuner with inverted sense (negative slope), this will be a small value.
-    AVL_uint32 (*fpGetMaxGainVoltage)(struct AVL_Tuner *, AVL_uint32 *);
+    uint32_t (*fpGetMaxGainVoltage)(struct AVL_Tuner *, uint32_t *);
 
     //RF Frequency step size in Hz
-    AVL_uint32 (*fpGetRFFreqStepSize)(struct AVL_Tuner *, AVL_uint32 *);
+    uint32_t (*fpGetRFFreqStepSize)(struct AVL_Tuner *, uint32_t *);
 
-  } AVL_Tuner;
+  };
 
 #ifdef AVL_CPLUSPLUS
 }

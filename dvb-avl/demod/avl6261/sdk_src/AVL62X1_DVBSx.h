@@ -21,14 +21,18 @@
 #ifndef _AVL62X1_DVBSX_H_
 #define _AVL62X1_DVBSX_H_
 
-#include "AVL62X1_Internal.h"
 #include "AVL62X1_Reg.h"
 #include "AVL_Tuner.h"
+#include "avl_lib.h"
 
 #ifdef AVL_CPLUSPLUS
 extern "C"
 {
 #endif
+
+#define AVL62X1_API_VER_MAJOR 1  //Public API rev
+#define AVL62X1_API_VER_MINOR 8  //SDK-FW API rev
+#define AVL62X1_API_VER_BUILD 23 //internal rev
 
 #define AVL62X1_PL_SCRAM_XSTATE (0x040000)
 #define AVL62X1_PL_SCRAM_AUTO (0x800000)
@@ -114,70 +118,70 @@ extern "C"
 #define PATCH_STD_DVBTx 2
 #define PATCH_STD_ISDBT 3
 
-  typedef enum AVL62X1_Slave_Addr
+  typedef enum avl62x1_slave_addr
   {
     AVL62X1_SA_0 = 0x14,
     AVL62X1_SA_1 = 0x15
-  } AVL62X1_Slave_Addr;
+  } avl62x1_slave_addr;
 
-  typedef enum AVL62X1_Xtal
+  typedef enum avl62x1_xtal
   {
     AVL62X1_RefClk_16M,
     AVL62X1_RefClk_27M,
     AVL62X1_RefClk_30M,
-  } AVL62X1_Xtal;
+  } avl62x1_xtal;
 
   // Defines the device functional mode.
-  typedef enum AVL62X1_FunctionalMode
+  typedef enum avl62x1_functional_mode
   {
     AVL62X1_FuncMode_Idle = 0,
     AVL62X1_FuncMode_Demod = 1,    // The device is in demod mode.
     AVL62X1_FuncMode_BlindScan = 2 // The device is in blind scan mode.
-  } AVL62X1_FunctionalMode;
+  } avl62x1_functional_mode;
 
   /// Defines the device spectrum polarity setting.
-  typedef enum AVL62X1_SpectrumPolarity
+  typedef enum avl62x1_spectrum_polarity
   {
     AVL62X1_Spectrum_Normal = 0, ///< = 0 The received signal spectrum is not inverted.
     AVL62X1_Spectrum_Invert = 1  ///< = 1 The received signal spectrum is inverted.
-  } AVL62X1_SpectrumPolarity;
+  } avl62x1_spectrum_polarity;
 
   // Defines demod lock status
-  typedef enum AVL62X1_LockStatus
+  typedef enum avl62x1_lock_status
   {
     AVL62X1_STATUS_UNLOCK = 0, // demod isn't locked
     AVL62X1_STATUS_LOCK = 1    // demod is in locked state.
-  } AVL62X1_LockStatus;
+  } avl62x1_lock_status;
 
-  typedef enum AVL62X1_LostLockStatus
+  typedef enum avl62x1_lost_lock_status
   {
     AVL62X1_Lost_Lock_No = 0, // demod has not lost lock since last check
     AVL62X1_Lost_Lock_Yes = 1 // demod has lost lock since last check
-  } AVL62X1_LostLockStatus;
+  } avl62x1_lost_lock_status;
 
   // Defines demod stream discovery status
-  typedef enum AVL62X1_DiscoveryStatus
+  typedef enum avl62x1_discovery_status
   {
     AVL62X1_DISCOVERY_RUNNING = 0, // stream discovery is still running
     AVL62X1_DISCOVERY_FINISHED = 1 // stream discovery has finished
-  } AVL62X1_DiscoveryStatus;
+  } avl62x1_discovery_status;
 
   // Defines the ON/OFF options for the AVL62X1 device.
-  typedef enum AVL62X1_Switch
+  typedef enum avl62x1_switch
   {
     AVL62X1_ON = 0, // switched on
     AVL62X1_OFF = 1 // switched off
-  } AVL62X1_Switch;
+  } avl62x1_switch;
 
-  typedef enum AVL62X1_Standard
+  typedef enum avl62x1_standard
   {
     AVL62X1_DVBS = 0,  // DVBS standard
     AVL62X1_DVBS2 = 1, // DVBS2 standard
     AVL62X1_QAM_Carrier = 2,
     AVL62X1_Edge_Pair = 3
-  } AVL62X1_Standard;
+  } avl62x1_standard;
 
-  typedef enum AVL62X1_ModulationMode
+  typedef enum avl62x1_modulation_mode
   {
     AVL62X1_BPSK = 1,
     AVL62X1_QPSK = 2,
@@ -187,18 +191,18 @@ extern "C"
     AVL62X1_64APSK = 6,
     AVL62X1_128APSK = 7,
     AVL62X1_256APSK = 8
-  } AVL62X1_ModulationMode;
+  } avl62x1_modulation_mode;
 
-  typedef enum AVL62X1_DVBS_CodeRate
+  typedef enum avl62x1_dvbs_code_rate
   {
     AVL62X1_DVBS_CR_1_2 = 0,
     AVL62X1_DVBS_CR_2_3 = 1,
     AVL62X1_DVBS_CR_3_4 = 2,
     AVL62X1_DVBS_CR_5_6 = 3,
     AVL62X1_DVBS_CR_7_8 = 4
-  } AVL62X1_DVBS_CodeRate;
+  } avl62x1_dvbs_code_rate;
 
-  typedef enum AVL62X1_DVBS2_CodeRate
+  typedef enum avl62x1_dvbs2_code_rate
   {
     AVL62X1_DVBS2_CR_1_4 = 0,
     AVL62X1_DVBS2_CR_1_3 = 1,
@@ -241,15 +245,15 @@ extern "C"
     AVL62X1_DVBS2_CR_7_15 = 38,
     AVL62X1_DVBS2_CR_8_15 = 39,
     AVL62X1_DVBS2_CR_32_45 = 40
-  } AVL62X1_DVBS2_CodeRate;
+  } avl62x1_dvbs2_code_rate;
 
-  typedef enum AVL62X1_Pilot
+  typedef enum avl62x1_pilot
   {
     AVL62X1_Pilot_OFF = 0, // Pilot off
     AVL62X1_Pilot_ON = 1   // Pilot on
-  } AVL62X1_Pilot;
+  } avl62x1_pilot;
 
-  typedef enum AVL62X1_RollOff
+  typedef enum avl62x1_rolloff
   {
     AVL62X1_RollOff_35 = 0,
     AVL62X1_RollOff_25 = 1,
@@ -258,22 +262,22 @@ extern "C"
     AVL62X1_RollOff_10 = 4,
     AVL62X1_RollOff_05 = 5,
     AVL62X1_RollOff_UNKNOWN = 6
-  } AVL62X1_RollOff;
+  } avl62x1_rolloff;
 
-  typedef enum AVL62X1_DVBS2_FECLength
+  typedef enum avl62x1_fec_length
   {
     AVL62X1_DVBS2_FEC_SHORT = 0,
     AVL62X1_DVBS2_FEC_MEDIUM = 2,
     AVL62X1_DVBS2_FEC_LONG = 1
-  } AVL62X1_DVBS2_FECLength;
+  } avl62x1_fec_length;
 
-  typedef enum AVL62X1_DVBS2_CCMACM
+  typedef enum avl62x1_dvbs2_ccm_acm
   {
     AVL62X1_DVBS2_ACM = 0,
     AVL62X1_DVBS2_CCM = 1
-  } AVL62X1_DVBS2_CCMACM;
+  } avl62x1_dvbs2_ccm_acm;
 
-  typedef enum AVL62X1_DVBStreamType
+  typedef enum avl62x1_dvb_stream_type
   {
     AVL62X1_GENERIC_PACKETIZED = 0,
     AVL62X1_GENERIC_CONTINUOUS = 1,
@@ -284,142 +288,142 @@ extern "C"
     AVL62X1_GSE_HEM_LITE = 6,
     AVL62X1_T2MI = 7,
     AVL62X1_UNDETERMINED = 255 //don't know stream type. demod will scan for streams then output first one found
-  } AVL62X1_DVBStreamType;
+  } avl62x1_dvb_stream_type;
 
   /// The MPEG output format. The default value in the Availink device is \a AVL_DVBSx_MPF_TS
-  typedef enum AVL62X1_MpegFormat
+  typedef enum avl62x1_mpeg_format
   {
     AVL62X1_MPF_TS = 0, ///< = 0  Transport stream format.
     AVL62X1_MPF_TSP = 1 ///< = 1  Transport stream plus parity format.
-  } AVL62X1_MpegFormat;
+  } avl62x1_mpeg_format;
 
   /// The MPEG output mode. The default value in the Availink device is \a AVL_DVBSx_MPM_Parallel
-  typedef enum AVL62X1_MpegMode
+  typedef enum avl62x1_mpeg_mode
   {
     AVL62X1_MPM_Parallel = 0,  ///< = 0  Output MPEG data in parallel mode
     AVL62X1_MPM_Serial = 1,    ///< = 0  Output MPEG data in serial mode
     AVL62X1_MPM_2BitSerial = 2 //output in 2bit serial mode
-  } AVL62X1_MpegMode;
+  } avl62x1_mpeg_mode;
 
   /// The MPEG output clock polarity. The clock polarity should be configured to meet the back end device's requirement.
   /// The default value in the Availink device is \a AVL_DVBSx_MPCP_Rising
-  typedef enum AVL62X1_MpegClockPolarity
+  typedef enum avl62x1_mpeg_clock_polarity
   {
     AVL62X1_MPCP_Falling = 0, ///<  = 0  The MPEG data is valid on the falling edge of the clock.
     AVL62X1_MPCP_Rising = 1   ///<  = 1  The MPEG data is valid on the rising edge of the clock.
-  } AVL62X1_MpegClockPolarity;
+  } avl62x1_mpeg_clock_polarity;
 
   // The phase of the MPEG clock edge relative to the data transition.
   // Applies to parallel mode only.
   // 0,1,2,3 will delay the MPEG clock edge by 0,1,2, or 3 m_MPEGFrequency_Hz clock periods
-  typedef enum AVL62X1_MpegClockPhase
+  typedef enum avl62x1_mpeg_clock_phase
   {
     AVL62X1_MPCP_Phase_0 = 0, /// no clock edge delay
     AVL62X1_MPCP_Phase_1 = 1, /// delay clock edge by 1
     AVL62X1_MPCP_Phase_2 = 2, /// delay clock edge by 2
     AVL62X1_MPCP_Phase_3 = 3  /// delay clock edge by 3
-  } AVL62X1_MpegClockPhase;
+  } avl62x1_mpeg_clock_phase;
 
   // Applies to serial mode only.
-  typedef enum AVL62X1_MpegClockAdaptation
+  typedef enum avl62x1_mpeg_clock_adaptation
   {
     AVL62X1_MPCA_Fixed = 0,   /// no adaptation - fixed frequency (m_MPEGFrequency_Hz)
     AVL62X1_MPCA_Adaptive = 1 /// adapt clock frequency to data rate
-  } AVL62X1_MpegClockAdaptation;
+  } avl62x1_mpeg_clock_adaptation;
 
   // Define MPEG bit order
-  typedef enum AVL62X1_MpegBitOrder
+  typedef enum avl62x1_mpeg_bit_order
   {
     AVL62X1_MPBO_LSB = 0, /// least significant bit first when serial transport mode is used
     AVL62X1_MPBO_MSB = 1  /// most significant bit first when serial transport mode is used
-  } AVL62X1_MpegBitOrder;
+  } avl62x1_mpeg_bit_order;
 
   ///
   /// Defines the pin on which the Availink device outputs the MPEG data when the MPEG interface has been configured to operate
   /// in serial mode.
-  typedef enum AVL62X1_MpegSerialPin
+  typedef enum avl62x1_mpeg_serial_pin
   {
     AVL62X1_MPSP_DATA0 = 0, ///< = 0 Serial data is output on pin MPEG_DATA_0
     AVL62X1_MPSP_DATA7 = 1  ///< = 1 Serial data is output on pin MPEG_DATA_7
-  } AVL62X1_MpegSerialPin;
+  } avl62x1_mpeg_serial_pin;
 
   // Defines the polarity of the MPEG error signal.
-  typedef enum AVL62X1_MpegPolarity
+  typedef enum avl62x1_mpeg_err_polarity
   {
     AVL62X1_MPEP_Normal = 0, // The MPEG error signal is high during the payload of a packet which contains uncorrectable error(s).
     AVL62X1_MPEP_Invert = 1  // The MPEG error signal is low during the payload of a packet which contains uncorrectable error(s).
-  } AVL62X1_MpegPolarity;
+  } avl62x1_mpeg_err_polarity;
 
   // Defines whether the feeback bit of the LFSR used to generate the BER/PER test pattern is inverted.
-  typedef enum AVL62X1_LFSR_FbBit
+  typedef enum avl62x1_lfsr_fb_bit
   {
     AVL62X1_LFSR_FB_NOT_INVERTED = 0, // LFSR feedback bit isn't inverted
     AVL62X1_LFSR_FB_INVERTED = 1      // LFSR feedback bit is inverted
-  } AVL62X1_LFSR_FbBit;
+  } avl62x1_lfsr_fb_bit;
 
   // Defines the test pattern being used for BER/PER measurements.
-  typedef enum AVL62X1_TestPattern
+  typedef enum avl62x1_test_pattern
   {
     AVL62X1_TEST_LFSR_15 = 0, // BER test pattern is LFSR15
     AVL62X1_TEST_LFSR_23 = 1  // BER test pattern is LFSR23
-  } AVL62X1_TestPattern;
+  } avl62x1_test_pattern;
 
   // Defines the type of auto error statistics
-  typedef enum AVL62X1_AutoErrorStat_Type
+  typedef enum avl62x1_auto_error_stats_type
   {
-    AVL62X1_ERROR_STAT_BYTE = 0, // error statistics will be reset according to the number of received bytes.
-    AVL62X1_ERROR_STAT_TIME = 1  // error statistics will be reset according to time interval.
-  } AVL62X1_AutoErrorStat_Type;
+    AVL62X1_ERROR_STATS_BYTE = 0, // error statistics will be reset according to the number of received bytes.
+    AVL62X1_ERROR_STATS_TIME = 1  // error statistics will be reset according to time interval.
+  } avl62x1_auto_error_stats_type;
 
   // Defines Error statistics mode
-  typedef enum AVL62X1_ErrorStat_Mode
+  typedef enum avl62x1_error_stats_mode
   {
-    AVL62X1_ERROR_STAT_MANUAL = 0,
-    AVL62X1_ERROR_STAT_AUTO = 1
-  } AVL62X1_ErrorStat_Mode;
+    AVL62X1_ERROR_STATS_MANUAL = 0,
+    AVL62X1_ERROR_STATS_AUTO = 1
+  } avl62x1_error_stats_mode;
 
   // Defines the DiSEqC status
-  typedef enum AVL62X1_DiseqcStatus
+  typedef enum avl62x1_diseqc_status
   {
     AVL62X1_DOS_Uninitialized = 0, // DiSEqC has not been initialized yet.
     AVL62X1_DOS_Initialized = 1,   // DiSEqC has been initialized.
     AVL62X1_DOS_InContinuous = 2,  // DiSEqC is in continuous mode.
     AVL62X1_DOS_InTone = 3,        // DiSEqC is in tone burst mode.
     AVL62X1_DOS_InModulation = 4   // DiSEqC is in modulation mode.
-  } AVL62X1_DiseqcStatus;
+  } avl62x1_diseqc_status;
 
-  typedef enum AVL62X1_Diseqc_TxGap
+  typedef enum avl62x1_diseqc_tx_gap
   {
     AVL62X1_DTXG_15ms = 0, // The gap is 15 ms.
     AVL62X1_DTXG_20ms = 1, // The gap is 20 ms.
     AVL62X1_DTXG_25ms = 2, // The gap is 25 ms.
     AVL62X1_DTXG_30ms = 3  // The gap is 30 ms.
-  } AVL62X1_Diseqc_TxGap;
+  } avl62x1_diseqc_tx_gap;
 
-  typedef enum AVL62X1_Diseqc_TxMode
+  typedef enum avl62x1_diseqc_tx_mode
   {
     AVL62X1_DTM_Modulation = 0, // Use modulation mode.
     AVL62X1_DTM_Tone0 = 1,      // Send out tone 0.
     AVL62X1_DTM_Tone1 = 2,      // Send out tone 1.
     AVL62X1_DTM_Continuous = 3  // Continuously send out pulses.
-  } AVL62X1_Diseqc_TxMode;
+  } avl62x1_diseqc_tx_mode;
 
-  typedef enum AVL62X1_Diseqc_RxTime
+  typedef enum avl62x1_diseqc_rx_time
   {
     AVL62X1_DRT_150ms = 0, // Wait 150 ms for receive data and then close the input FIFO.
     AVL62X1_DRT_170ms = 1, // Wait 170 ms for receive data and then close the input FIFO.
     AVL62X1_DRT_190ms = 2, // Wait 190 ms for receive data and then close the input FIFO.
     AVL62X1_DRT_210ms = 3  // Wait 210 ms for receive data and then close the input FIFO.
-  } AVL62X1_Diseqc_RxTime;
+  } avl62x1_diseqc_rx_time;
 
-  typedef enum AVL62X1_Diseqc_WaveFormMode
+  typedef enum avl62x1_diseqc_waveform_mode
   {
     AVL62X1_DWM_Normal = 0,  // Normal waveform mode
     AVL62X1_DWM_Envelope = 1 // Envelope waveform mode
-  } AVL62X1_Diseqc_WaveFormMode;
+  } avl62x1_diseqc_waveform_mode;
 
   //GPIO pins by number and name
-  typedef enum AVL62X1_GPIO_Pin
+  typedef enum avl62x1_gpio_pin
   {
     AVL62X1_GPIO_Pin_10 = 0,
     AVL62X1_GPIO_Pin_TUNER_SDA = 0,
@@ -431,241 +435,248 @@ extern "C"
     AVL62X1_GPIO_Pin_LNB_PWR_EN = 3,
     AVL62X1_GPIO_Pin_38 = 4,
     AVL62X1_GPIO_Pin_LNB_PWR_SEL = 4
-  } AVL62X1_GPIO_Pin;
+  } avl62x1_gpio_pin;
 
-  typedef enum AVL62X1_GPIO_Pin_Direction
+  typedef enum avl62x1_gpio_pin_dir
   {
     AVL62X1_GPIO_DIR_OUTPUT = 0,
     AVL62X1_GPIO_DIR_INPUT = 1
-  } AVL62X1_GPIO_Pin_Direction;
+  } avl62x1_gpio_pin_dir;
 
-  typedef enum AVL62X1_GPIO_Pin_Value
+  typedef enum avl62x1_gpio_pin_value
   {
     AVL62X1_GPIO_VALUE_LOGIC_0 = 0,
     AVL62X1_GPIO_VALUE_LOGIC_1 = 1,
     AVL62X1_GPIO_VALUE_HIGH_Z = 2
-  } AVL62X1_GPIO_Pin_Value;
+  } avl62x1_gpio_pin_value;
 
-  typedef enum AVL62X1_SIS_MIS
+  typedef enum avl62x1_sis_mis
   {
     AVL62X1_MIS = 0,
     AVL62X1_SIS = 1,
     AVL62X1_SIS_MIS_UNKNOWN = 2
-  } AVL62X1_SIS_MIS;
+  } avl62x1_sis_mis;
 
-  typedef struct AVL62X1_CarrierInfo
+  struct avl62x1_carrier_info
   {
-    AVL_uchar m_carrier_index;          //index of this carrier
-    AVL_uint32 m_rf_freq_kHz;           //RF frequency of the carrier in kHz
-    AVL_int32 m_carrier_freq_offset_Hz; //carrier frequency offset (from RF freq) in Hz
+    uint8_t m_carrier_index;          //index of this carrier
+    uint32_t m_rf_freq_kHz;           //RF frequency of the carrier in kHz
+    int32_t m_carrier_freq_offset_Hz; //carrier frequency offset (from RF freq) in Hz
 
     //When locking with blind_sym_rate=false, this is the nominal symbol rate
     //When locking with blind_sym_rate=true, this is the max symbol rate to consider
-    AVL_uint32 m_symbol_rate_Hz;
+    uint32_t m_symbol_rate_Hz;
 
-    enum AVL62X1_RollOff m_roll_off;
-    enum AVL62X1_Standard m_signal_type;
+    enum avl62x1_rolloff m_roll_off;
+    enum avl62x1_standard m_signal_type;
 
     //AVL62X1_PL_SCRAM_AUTO: turn on/off automatic PL scrambling detection
     //AVL62X1_PL_SCRAM_XSTATE: 1 - LSB's represent the initial state of the x(i) LFSR
     //AVL62X1_PL_SCRAM_XSTATE: 0 - LSB's represent the sequence shift of the x(i) sequence in the Gold code, defined as the "code number n" in the DVB-S2 standard
-    AVL_uint32 m_PL_scram_key;
+    uint32_t m_PL_scram_key;
 
-    AVL_uchar m_PLS_ACM; //PLS if CCM, 0 if ACM
-    enum AVL62X1_SIS_MIS m_SIS_MIS;
-    AVL_uchar m_num_streams; //number of supported streams (that can be output)
-    AVL_int16 m_SNR_dB_x100; //
-    enum AVL62X1_ModulationMode m_modulation;
-    enum AVL62X1_Pilot m_pilot;
-    enum AVL62X1_DVBS2_FECLength m_dvbs2_fec_length;
+    uint8_t m_PLS_ACM; //PLS if CCM, 0 if ACM
+    enum avl62x1_sis_mis m_SIS_MIS;
+    uint8_t m_num_streams; //number of supported streams (that can be output)
+    int16_t m_SNR_dB_x100; //
+    enum avl62x1_modulation_mode m_modulation;
+    enum avl62x1_pilot m_pilot;
+    enum avl62x1_fec_length m_dvbs2_fec_length;
     union {
-      enum AVL62X1_DVBS_CodeRate m_dvbs_code_rate;
-      enum AVL62X1_DVBS2_CodeRate m_dvbs2_code_rate;
+      enum avl62x1_dvbs_code_rate m_dvbs_code_rate;
+      enum avl62x1_dvbs2_code_rate m_dvbs2_code_rate;
     } m_coderate;
-    enum AVL62X1_DVBS2_CCMACM m_dvbs2_ccm_acm; //1:CCM, 0:ACM
-  } AVL62X1_CarrierInfo;
+    enum avl62x1_dvbs2_ccm_acm m_dvbs2_ccm_acm; //1:CCM, 0:ACM
+  };
 
   //structure to save Multistream T2MI MPLP infromation
-  typedef struct AVL62X1_T2MI_MPLP
+  struct avl62x1_t2mi_mplp
   {
-    AVL_uchar PLP_Num;        //PLP NUM
-    AVL_uchar PLPid_List[16]; //PLP_Id list
-  } AVL62X1_T2MI_MPLP;
+    uint8_t PLP_Num;        //PLP NUM
+    uint8_t PLPid_List[16]; //PLP_Id list
+  };
 
-  typedef struct AVL62X1_StreamInfo
+  struct avl62x1_stream_info
   {
-    AVL_uchar m_carrier_index; //index of carrier (AVL62X1_CarrierInfo.m_CarrierIndex) that this stream is in
-    enum AVL62X1_DVBStreamType m_stream_type;
-    AVL_uchar m_ISI;
-    AVL_uchar m_PLP_ID;                // use when lock TP
-    AVL_uint16 m_T2MI_PID;             // use when lock TP
-    struct AVL62X1_T2MI_MPLP PLP_List; // save scan out the PLP list for T2MI ISI
-  } AVL62X1_StreamInfo;
+    uint8_t m_carrier_index; //index of carrier (avl62x1_carrier_info.m_CarrierIndex) that this stream is in
+    enum avl62x1_dvb_stream_type m_stream_type;
+    uint8_t m_ISI;
+    uint8_t m_PLP_ID;                // use when lock TP
+    uint16_t m_T2MI_PID;             // use when lock TP
+    struct avl62x1_t2mi_mplp PLP_List; // save scan out the PLP list for T2MI ISI
+  };
 
-  typedef struct AVL62X1_ErrorStatus
+  struct avl62x1_error_stats
   {
-    AVL_uint16 m_LFSR_Sync;          // Indicates whether the receiver is synchronized with the transmitter generating the BER test pattern.
-    AVL_uint16 m_LostLock;           // Indicates whether the receiver has lost lock since the BER/PER measurement was started.
-    AVL62X1_uint64 m_SwCntNumBits;   // A software counter which stores the number of bits which have been received.
-    AVL62X1_uint64 m_SwCntBitErrors; // A software counter which stores the number of bit errors which have been detected.
-    AVL62X1_uint64 m_NumBits;        // The total number of bits which have been received.
-    AVL62X1_uint64 m_BitErrors;      // The total number of bit errors which have been detected.
-    AVL62X1_uint64 m_SwCntNumPkts;   // A software counter which stores the number of packets which have been received.
-    AVL62X1_uint64 m_SwCntPktErrors; // A software counter which stores the number of packet errors which have been detected.
-    AVL62X1_uint64 m_NumPkts;        // The total number of packets which have been received.
-    AVL62X1_uint64 m_PktErrors;      // The total number of packet errors which have been detected.
-    AVL_uint32 m_BER;                // The bit error rate scaled by 1e9.
-    AVL_uint32 m_PER;                // The packet error rate scaled by 1e9.
-  } AVL62X1_ErrorStatus;
-
-  // Contains variables for storing error statistics used in the BER and PER calculations.
-  typedef struct AVL62X1_ErrorStatConfig
-  {
-    enum AVL62X1_ErrorStat_Mode eErrorStatMode;         // indicates the error statistics mode.
-    enum AVL62X1_AutoErrorStat_Type eAutoErrorStatType; // indicates the MPEG data sampling clock mode.
-    AVL_uint32 uiTimeThresholdMs;                       // used to set time interval for auto error statistics.
-    AVL_uint32 uiNumberThresholdByte;                   // used to set the received byte number threshold for auto error statistics.
-  } AVL62X1_ErrorStatConfig;
+    uint16_t m_LFSR_Sync;          // Indicates whether the receiver is synchronized with the transmitter generating the BER test pattern.
+    uint16_t m_LostLock;           // Indicates whether the receiver has lost lock since the BER/PER measurement was started.
+    struct avl_uint64 m_SwCntNumBits;   // A software counter which stores the number of bits which have been received.
+    struct avl_uint64 m_SwCntBitErrors; // A software counter which stores the number of bit errors which have been detected.
+    struct avl_uint64 m_NumBits;        // The total number of bits which have been received.
+    struct avl_uint64 m_BitErrors;      // The total number of bit errors which have been detected.
+    struct avl_uint64 m_SwCntNumPkts;   // A software counter which stores the number of packets which have been received.
+    struct avl_uint64 m_SwCntPktErrors; // A software counter which stores the number of packet errors which have been detected.
+    struct avl_uint64 m_NumPkts;        // The total number of packets which have been received.
+    struct avl_uint64 m_PktErrors;      // The total number of packet errors which have been detected.
+    uint32_t m_BER;                // The bit error rate scaled by 1e9.
+    uint32_t m_PER;                // The packet error rate scaled by 1e9.
+  };
 
   // Contains variables for storing error statistics used in the BER and PER calculations.
-  typedef struct AVL62X1_BERConfig
+  struct avl62x1_error_stats_config
   {
-    enum AVL62X1_TestPattern eBERTestPattern; // indicates the pattern of LFSR.
-    enum AVL62X1_LFSR_FbBit eBERFBInversion;  // indicates LFSR feedback bit inversion.
-    AVL_uint32 uiLFSRSynced;                  // indicates the LFSR synchronization status.
-    AVL_uint32 uiLFSRStartPos;                //set LFSR start byte positon
-  } AVL62X1_BERConfig;
+    enum avl62x1_error_stats_mode eErrorStatMode;         // indicates the error statistics mode.
+    enum avl62x1_auto_error_stats_type eAutoErrorStatType; // indicates the MPEG data sampling clock mode.
+    uint32_t uiTimeThresholdMs;                       // used to set time interval for auto error statistics.
+    uint32_t uiNumberThresholdByte;                   // used to set the received byte number threshold for auto error statistics.
+  };
+
+  // Contains variables for storing error statistics used in the BER and PER calculations.
+  struct avl62x1_ber_config
+  {
+    enum avl62x1_test_pattern eBERTestPattern; // indicates the pattern of LFSR.
+    enum avl62x1_lfsr_fb_bit eBERFBInversion;  // indicates LFSR feedback bit inversion.
+    uint32_t uiLFSRSynced;                  // indicates the LFSR synchronization status.
+    uint32_t uiLFSRStartPos;                //set LFSR start byte positon
+  };
 
   // Stores DiSEqC operation parameters
-  typedef struct AVL62X1_Diseqc_Para
+  struct avl62x1_diseqc_params
   {
-    AVL_uint16 uiToneFrequencyKHz;                // The DiSEqC bus speed in units of kHz. Normally, it is 22kHz.
-    enum AVL62X1_Diseqc_TxGap eTXGap;             // Transmit gap
-    enum AVL62X1_Diseqc_WaveFormMode eTxWaveForm; // Transmit waveform format
-    enum AVL62X1_Diseqc_RxTime eRxTimeout;        // Receive time frame window
-    enum AVL62X1_Diseqc_WaveFormMode eRxWaveForm; // Receive waveform format
-  } AVL_Diseqc_Para;
+    uint16_t uiToneFrequencyKHz;                // The DiSEqC bus speed in units of kHz. Normally, it is 22kHz.
+    enum avl62x1_diseqc_tx_gap eTXGap;             // Transmit gap
+    enum avl62x1_diseqc_waveform_mode eTxWaveForm; // Transmit waveform format
+    enum avl62x1_diseqc_rx_time eRxTimeout;        // Receive time frame window
+    enum avl62x1_diseqc_waveform_mode eRxWaveForm; // Receive waveform format
+  };
 
   /// Stores the DiSEqC transmitter status.
   ///
-  typedef struct AVL62X1_Diseqc_TxStatus
+  struct avl62x1_diseqc_tx_status
   {
-    AVL_uchar m_TxDone;      ///< Indicates whether the transmission is complete (1 - transmission is finished, 0 - transmission is still in progress).
-    AVL_uchar m_TxFifoCount; ///< The number of bytes remaining in the transmit FIFO
-  } AVL62X1_Diseqc_TxStatus;
+    uint8_t m_TxDone;      ///< Indicates whether the transmission is complete (1 - transmission is finished, 0 - transmission is still in progress).
+    uint8_t m_TxFifoCount; ///< The number of bytes remaining in the transmit FIFO
+  };
 
   /// Stores the DiSEqC receiver status
   ///
-  typedef struct AVL62X1_Diseqc_RxStatus
+  struct avl62x1_diseqc_rx_status
   {
-    AVL_uchar m_RxFifoCount; ///< The number of bytes in the DiSEqC receive FIFO.
-    AVL_uchar m_RxDone;      ///< 1 if the receiver window is turned off, 0 if it is still in receiving state.
-  } AVL62X1_Diseqc_RxStatus;
+    uint8_t m_RxFifoCount; ///< The number of bytes in the DiSEqC receive FIFO.
+    uint8_t m_RxDone;      ///< 1 if the receiver window is turned off, 0 if it is still in receiving state.
+  };
 
   // The Availink version structure.
-  typedef struct AVL_VerInfo
+  struct avl_ver_info
   {
-    AVL_uchar m_Major;  // The major version number.
-    AVL_uchar m_Minor;  // The minor version number.
-    AVL_uint16 m_Build; // The build version number.
-  } AVL_VerInfo;
+    uint8_t m_Major;  // The major version number.
+    uint8_t m_Minor;  // The minor version number.
+    uint16_t m_Build; // The build version number.
+  };
 
   // Stores AVL62X1 device version information.
-  typedef struct AVL62X1_VerInfo
+  struct avl62x1_ver_info
   {
-    AVL_uint32 m_Chip;   // Hardware version information. 0xPPPPSSSS (P:part number (6261), S:SVN revision in hex (23720))
-    AVL_VerInfo m_API;   // SDK version information.
-    AVL_VerInfo m_Patch; // The version of the internal patch.
-  } AVL62X1_VerInfo;
+    uint32_t m_Chip;   // Hardware version information. 0xPPPPSSSS (P:part number (6261), S:SVN revision in hex (23720))
+    struct avl_ver_info m_API;   // SDK version information.
+    struct avl_ver_info m_Patch; // The version of the internal patch.
+  };
 
-  typedef struct AVL62X1_Chip
+  struct avl62x1_chip
   {
-    AVL_uint16 usI2CAddr;
-    enum AVL62X1_Xtal e_Xtal; // Reference clock
-    AVL_puchar pPatchData;
+    uint16_t usI2CAddr;
+    enum avl62x1_xtal e_Xtal; // Reference clock
+    uint8_t *pPatchData;
 
     struct AVL_Tuner *pTuner;                 // Pointer to AVL_Tuner struct instance
-    enum AVL62X1_SpectrumPolarity e_TunerPol; // Tuner spectrum polarity (e.g. I/Q input swapped)
+    enum avl62x1_spectrum_polarity e_TunerPol; // Tuner spectrum polarity (e.g. I/Q input swapped)
 
-    enum AVL62X1_MpegMode e_Mode;
-    enum AVL62X1_MpegClockPolarity e_ClkPol;
-    enum AVL62X1_MpegClockPhase e_ClkPhase;
-    enum AVL62X1_MpegClockAdaptation e_ClkAdapt;
-    enum AVL62X1_MpegFormat e_Format;
-    enum AVL62X1_MpegSerialPin e_SerPin;
+    enum avl62x1_mpeg_mode e_Mode;
+    enum avl62x1_mpeg_clock_polarity e_ClkPol;
+    enum avl62x1_mpeg_clock_phase e_ClkPhase;
+    enum avl62x1_mpeg_clock_adaptation e_ClkAdapt;
+    enum avl62x1_mpeg_format e_Format;
+    enum avl62x1_mpeg_serial_pin e_SerPin;
 
     //The desired MPEG clock frequency in units of Hz.
     //It is updated with the exact value after the demod has initialized
-    AVL_uint32 m_MPEGFrequency_Hz;
-    AVL_uint32 m_CoreFrequency_Hz; // The internal core clock frequency in units of Hz.
-    AVL_uint32 m_FECFrequency_Hz;  // FEC clk in Hz
+    uint32_t m_MPEGFrequency_Hz;
+    uint32_t m_CoreFrequency_Hz; // The internal core clock frequency in units of Hz.
+    uint32_t m_FECFrequency_Hz;  // FEC clk in Hz
 
-    enum AVL62X1_DiseqcStatus m_Diseqc_OP_Status;
+    enum avl62x1_diseqc_status m_Diseqc_OP_Status;
 
-    AVL_semaphore m_semRx;     // A semaphore used to protect the receiver command channel.
-    AVL_semaphore m_semDiseqc; // A semaphore used to protect DiSEqC operation.
+    avl_sem_t m_semRx;     // A semaphore used to protect the receiver command channel.
+    avl_sem_t m_semDiseqc; // A semaphore used to protect DiSEqC operation.
 
-    AVL_uint32 m_variable_array[PATCH_VAR_ARRAY_SIZE];
-  } AVL62X1_Chip;
+    uint32_t m_variable_array[PATCH_VAR_ARRAY_SIZE];
+  };
 
   //structure to configure blind scan for a SINGLE TUNER STEP
-  typedef struct AVL62X1_BlindScanParams
+  struct avl62x1_blind_scan_params
   {
-    AVL_uint16 m_TunerCenterFreq_100kHz;
-    AVL_uint16 m_TunerLPF_100kHz;
-    AVL_uint16 m_MinSymRate_kHz;
-  } AVL62X1_BlindScanParams;
+    uint16_t m_TunerCenterFreq_100kHz;
+    uint16_t m_TunerLPF_100kHz;
+    uint16_t m_MinSymRate_kHz;
+  };
 
   //structure to capture the information from blind scan of a SINGLE TUNER STEP
-  typedef struct AVL62X1_BlindScanInfo
+  struct avl62x1_blind_scan_info
   {
-    AVL_uchar m_ScanProgress;     //approx progress in percent
-    AVL_uchar m_BSFinished;       //!0 when BS completed
-    AVL_uchar m_NumCarriers;      //number of confirmed S or S2/X carriers
-    AVL_uchar m_NumStreams;       //DEPRECATED number of confirmed DVB output streams (e.g. TS, GSE)
-    AVL_uint32 m_NextFreqStep_Hz; //amount to move tuner (relative to its current position) for next BS step
-  } AVL62X1_BlindScanInfo;
+    uint8_t m_ScanProgress;     //approx progress in percent
+    uint8_t m_BSFinished;       //!0 when BS completed
+    uint8_t m_NumCarriers;      //number of confirmed S or S2/X carriers
+    uint8_t m_NumStreams;       //DEPRECATED number of confirmed DVB output streams (e.g. TS, GSE)
+    uint32_t m_NextFreqStep_Hz; //amount to move tuner (relative to its current position) for next BS step
+  };
 
-  AVL_ErrorCode Init_AVL62X1_ChipObject(struct AVL62X1_Chip *pAVL_ChipObject);
+  extern int32_t carrier_freq_offset_hz;
 
-  AVL_ErrorCode IBase_CheckChipReady_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_Initialize_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_GetVersion_AVL62X1(struct AVL62X1_VerInfo *pVer_info, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_GetFunctionMode_AVL62X1(enum AVL62X1_FunctionalMode *pFuncMode, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_GetRxOPStatus_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_SendRxOP_AVL62X1(AVL_uchar ucOpCmd, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_GetSPOPStatus_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_SendSPOP_AVL62X1(AVL_uchar ucOpCmd, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_Halt_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_Sleep_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_Wakeup_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IBase_Initialize_TunerI2C_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t Init_AVL62X1_ChipObject(struct avl62x1_chip *pAVL_ChipObject);
 
-  AVL_ErrorCode IRx_Initialize_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_GetTunerPola_AVL62X1(enum AVL62X1_SpectrumPolarity *pTuner_Pol, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_SetTunerPola_AVL62X1(enum AVL62X1_SpectrumPolarity enumTuner_Pol, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_DriveAGC_AVL62X1(enum AVL62X1_Switch enumOn_Off, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_GetCarrierFreqOffset_AVL62X1(AVL_pint32 piFreqOffsetHz, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_GetSROffset_AVL62X1(AVL_pint32 piSROffsetPPM, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_ErrorStatMode_AVL62X1(struct AVL62X1_ErrorStatConfig *stErrorStatConfig, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_ResetBER_AVL62X1(struct AVL62X1_BERConfig *pBERConfig, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_GetBER_AVL62X1(AVL_puint32 puiBER_x1e9, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_GetAcqRetries_AVL62X1(AVL_puchar pucRetryNum, struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t IBase_CheckChipReady_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_Initialize_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_GetVersion_AVL62X1(struct avl62x1_ver_info *pVer_info, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_GetFunctionMode_AVL62X1(enum avl62x1_functional_mode *pFuncMode, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_GetRxOPStatus_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_SendRxOP_AVL62X1(uint8_t ucOpCmd, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_GetSPOPStatus_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_SendSPOP_AVL62X1(uint8_t ucOpCmd, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_Halt_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_Sleep_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_Wakeup_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IBase_Initialize_TunerI2C_AVL62X1(struct avl62x1_chip *pAVL_Chip);
 
-  AVL_ErrorCode IRx_SetMpegMode_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_SetMpegBitOrder_AVL62X1(enum AVL62X1_MpegBitOrder e_BitOrder, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_SetMpegErrorPolarity_AVL62X1(enum AVL62X1_MpegPolarity e_ErrorPol, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_SetMpegValidPolarity_AVL62X1(enum AVL62X1_MpegPolarity e_ValidPol, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_EnableMpegContiClock_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_DisableMpegContiClock_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_DriveMpegOutput_AVL62X1(enum AVL62X1_Switch enumOn_Off, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_ConfigPLS_AVL62X1(AVL_uint32 uiShiftValue, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IRx_SetPLSAutoDetect_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t IRx_Initialize_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_GetTunerPola_AVL62X1(enum avl62x1_spectrum_polarity *pTuner_Pol, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_SetTunerPola_AVL62X1(enum avl62x1_spectrum_polarity enumTuner_Pol, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_DriveAGC_AVL62X1(enum avl62x1_switch enumOn_Off, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_GetCarrierFreqOffset_AVL62X1(int32_t *piFreqOffsetHz, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_GetSROffset_AVL62X1(int32_t *piSROffsetPPM, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_ErrorStatMode_AVL62X1(struct avl62x1_error_stats_config *stErrorStatConfig, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_ResetBER_AVL62X1(struct avl62x1_ber_config *pBERConfig, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_GetBER_AVL62X1(uint32_t *puiBER_x1e9, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_GetAcqRetries_AVL62X1(uint8_t *pucRetryNum, struct avl62x1_chip *pAVL_Chip);
 
-  AVL_ErrorCode IDiseqc_Initialize_AVL62X1(struct AVL62X1_Diseqc_Para *pDiseqcPara, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode IDiseqc_IsSafeToSwitchMode_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t IRx_SetMpegMode_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_SetMpegBitOrder_AVL62X1(enum avl62x1_mpeg_bit_order e_BitOrder, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_SetMpegErrorPolarity_AVL62X1(enum avl62x1_mpeg_err_polarity e_ErrorPol, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_SetMpegValidPolarity_AVL62X1(enum avl62x1_mpeg_err_polarity e_ValidPol, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_EnableMpegContiClock_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_DisableMpegContiClock_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_DriveMpegOutput_AVL62X1(enum avl62x1_switch enumOn_Off, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_ConfigPLS_AVL62X1(uint32_t uiShiftValue, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IRx_SetPLSAutoDetect_AVL62X1(struct avl62x1_chip *pAVL_Chip);
 
-  AVL_ErrorCode IBase_DownloadPatch_AVL62X1(struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t IDiseqc_Initialize_AVL62X1(struct avl62x1_diseqc_params *pDiseqcPara, struct avl62x1_chip *pAVL_Chip);
+  uint16_t IDiseqc_IsSafeToSwitchMode_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+
+  uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip);
+
+  uint8_t patch_read8_AVL62X1(uint8_t *pPatchBuf, uint32_t *idx);
+  uint16_t patch_read16_AVL62X1(uint8_t *pPatchBuf, uint32_t *idx);
+  uint32_t patch_read32_AVL62X1(uint8_t *pPatchBuf, uint32_t *idx);
+  uint32_t Convert_XLFSRToN_AVL62X1(uint32_t XLFSR);
 
 #ifdef AVL_CPLUSPLUS
 }

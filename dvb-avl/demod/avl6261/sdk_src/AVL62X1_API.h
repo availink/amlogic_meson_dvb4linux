@@ -22,65 +22,64 @@
 #define _AVL62X1_API_H_
 
 #include "AVL62X1_DVBSx.h"
-#include "AVL_Tuner.h"
 
 #ifdef AVL_CPLUSPLUS
 extern "C"
 {
 #endif
 
-  AVL_ErrorCode AVL62X1_GetChipID(AVL_uint16 slave_addr, AVL_puint32 pChipId);
-  AVL_ErrorCode AVL62X1_Initialize(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_LockTP(struct AVL62X1_CarrierInfo *pCarrierInfo, struct AVL62X1_StreamInfo *pStreamInfo, AVL_bool blind_sym_rate, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetLockStatus(enum AVL62X1_LockStatus *eLockStat, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetLostLockStatus(enum AVL62X1_LostLockStatus *eLostLockStat, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetSNR(AVL_pint16 piSNR_x100db, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetSignalInfo(struct AVL62X1_CarrierInfo *pCarrierInfo, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetSignalStrength(AVL_puint16 puiSignalStrength, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetSignalQuality(AVL_puint16 puiSignalQuality, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_ResetPER(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetPER(AVL_puint32 puiPER_x1e9, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_DiscoverStreams(struct AVL62X1_CarrierInfo *pCarrierInfo, AVL_bool blind_sym_rate, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetDiscoveryStatus(enum AVL62X1_DiscoveryStatus *eDiscoveryStat, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetStreamNumber(AVL_puchar pStreamNum, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetStreamList(struct AVL62X1_StreamInfo *pStreams, const AVL_uchar max_num_streams, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_SwitchStream(struct AVL62X1_StreamInfo *pStreamInfo, struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t AVL62X1_GetChipID(uint16_t slave_addr, uint32_t *pChipId);
+  uint16_t AVL62X1_Initialize(struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_LockTP(struct avl62x1_carrier_info *pCarrierInfo, struct avl62x1_stream_info *pStreamInfo, avl_bool_t blind_sym_rate, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetLockStatus(enum avl62x1_lock_status *eLockStat, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetLostLockStatus(enum avl62x1_lost_lock_status *eLostLockStat, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetSNR(int16_t *piSNR_x100db, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetSignalInfo(struct avl62x1_carrier_info *pCarrierInfo, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetSignalStrength(uint16_t *puiSignalStrength, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetSignalQuality(uint16_t *puiSignalQuality, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_ResetPER(struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetPER(uint32_t *puiPER_x1e9, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_DiscoverStreams(struct avl62x1_carrier_info *pCarrierInfo, avl_bool_t blind_sym_rate, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetDiscoveryStatus(enum avl62x1_discovery_status *eDiscoveryStat, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetStreamNumber(uint8_t *pStreamNum, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetStreamList(struct avl62x1_stream_info *pStreams, const uint8_t max_num_streams, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_SwitchStream(struct avl62x1_stream_info *pStreamInfo, struct avl62x1_chip *pAVL_Chip);
 
-  AVL_ErrorCode AVL62X1_IDiseqc_ReadModulationData(AVL_puchar pucBuff, AVL_puchar pucSize, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_IDiseqc_SendModulationData(const AVL_puchar pucBuff, AVL_uchar ucSize, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_IDiseqc_GetTxStatus(struct AVL62X1_Diseqc_TxStatus *pTxStatus, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_IDiseqc_GetRxStatus(struct AVL62X1_Diseqc_RxStatus *pRxStatus, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_IDiseqc_SendTone(AVL_uchar ucTone, AVL_uchar ucCount, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_IDiseqc_Start22K(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_IDiseqc_Stop22K(struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t AVL62X1_IDiseqc_ReadModulationData(uint8_t *pucBuff, uint8_t *pucSize, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_IDiseqc_SendModulationData(const uint8_t *pucBuff, uint8_t ucSize, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_IDiseqc_GetTxStatus(struct avl62x1_diseqc_tx_status *pTxStatus, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_IDiseqc_GetRxStatus(struct avl62x1_diseqc_rx_status *pRxStatus, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_IDiseqc_SendTone(uint8_t ucTone, uint8_t ucCount, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_IDiseqc_Start22K(struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_IDiseqc_Stop22K(struct avl62x1_chip *pAVL_Chip);
 
-  AVL_ErrorCode AVL62X1_OpenTunerI2C(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_CloseTunerI2C(struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t AVL62X1_OpenTunerI2C(struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_CloseTunerI2C(struct avl62x1_chip *pAVL_Chip);
 
-  AVL_ErrorCode AVL62X1_SetGPIODir(enum AVL62X1_GPIO_Pin ePin, enum AVL62X1_GPIO_Pin_Direction eDir, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_SetGPIOVal(enum AVL62X1_GPIO_Pin ePin, enum AVL62X1_GPIO_Pin_Value eVal, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetGPIOVal(enum AVL62X1_GPIO_Pin ePin, enum AVL62X1_GPIO_Pin_Value *peVal, struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t AVL62X1_SetGPIODir(enum avl62x1_gpio_pin ePin, enum avl62x1_gpio_pin_dir eDir, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_SetGPIOVal(enum avl62x1_gpio_pin ePin, enum avl62x1_gpio_pin_value eVal, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetGPIOVal(enum avl62x1_gpio_pin ePin, enum avl62x1_gpio_pin_value *peVal, struct avl62x1_chip *pAVL_Chip);
 
-  AVL_ErrorCode AVL62X1_BlindScan_Start(struct AVL62X1_BlindScanParams *pBSParams, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_BlindScan_Cancel(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_BlindScan_GetStatus(struct AVL62X1_BlindScanInfo *pBSInfo, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_BlindScan_GetCarrierList(const struct AVL62X1_BlindScanParams *pBSParams, struct AVL62X1_BlindScanInfo *pBSInfo, struct AVL62X1_CarrierInfo *pCarriers, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_BlindScan_ConfirmCarrier(const struct AVL62X1_BlindScanParams *pBSParams, struct AVL62X1_CarrierInfo *pCarrierInfo, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_BlindScan_GetStreamList(struct AVL62X1_CarrierInfo *pCarrier, struct AVL62X1_StreamInfo *pStreams, const AVL_uchar max_num_streams, struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t AVL62X1_BlindScan_Start(struct avl62x1_blind_scan_params *pBSParams, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_BlindScan_Cancel(struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_BlindScan_GetStatus(struct avl62x1_blind_scan_info *pBSInfo, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_BlindScan_GetCarrierList(const struct avl62x1_blind_scan_params *pBSParams, struct avl62x1_blind_scan_info *pBSInfo, struct avl62x1_carrier_info *pCarriers, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_BlindScan_ConfirmCarrier(const struct avl62x1_blind_scan_params *pBSParams, struct avl62x1_carrier_info *pCarrierInfo, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_BlindScan_GetStreamList(struct avl62x1_carrier_info *pCarrier, struct avl62x1_stream_info *pStreams, const uint8_t max_num_streams, struct avl62x1_chip *pAVL_Chip);
 
-  AVL_ErrorCode AVL62X1_Optimize_Carrier(struct AVL_Tuner *pTuner, struct AVL62X1_CarrierInfo *pCarrierInfo);
-  AVL_ErrorCode AVL62X1_Enable_T2MIRawMode(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_Disable_T2MIRawMode(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_GetPLSXLFSRValue(AVL_puint32 pXLFSRValue, struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t AVL62X1_Optimize_Carrier(struct AVL_Tuner *pTuner, struct avl62x1_carrier_info *pCarrierInfo);
+  uint16_t AVL62X1_Enable_T2MIRawMode(struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_Disable_T2MIRawMode(struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_GetPLSXLFSRValue(uint32_t *pXLFSRValue, struct avl62x1_chip *pAVL_Chip);
 
-  AVL_ErrorCode AVL62X1_Manual_Set_T2MI_PID(AVL_uint16 T2MI_PID, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_Manual_Set_T2MI_PID_1(AVL_uint16 T2MI_PID, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_AutoDetect_T2MI_PID_Enable(struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_Get_Current_Stream_T2MI_PID(AVL_puint16 puiT2MI_PID, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_Set_Current_Stream_T2MI_PID(AVL_uint16 uiT2MI_PID, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_Set_T2MI_MPLP_id_ScanTime(AVL_uint16 Frame_Num, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_Get_T2MI_PLPid(struct AVL62X1_T2MI_MPLP *PLP_List, struct AVL62X1_Chip *pAVL_Chip);
-  AVL_ErrorCode AVL62X1_Get_StreamType(enum AVL62X1_DVBStreamType *StreamType, struct AVL62X1_Chip *pAVL_Chip);
+  uint16_t AVL62X1_Manual_Set_T2MI_PID(uint16_t T2MI_PID, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_Manual_Set_T2MI_PID_1(uint16_t T2MI_PID, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_AutoDetect_T2MI_PID_Enable(struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_Get_Current_Stream_T2MI_PID(uint16_t *puiT2MI_PID, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_Set_Current_Stream_T2MI_PID(uint16_t uiT2MI_PID, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_Set_T2MI_MPLP_id_ScanTime(uint16_t Frame_Num, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_Get_T2MI_PLPid(struct avl62x1_t2mi_mplp *PLP_List, struct avl62x1_chip *pAVL_Chip);
+  uint16_t AVL62X1_Get_StreamType(enum avl62x1_dvb_stream_type *StreamType, struct avl62x1_chip *pAVL_Chip);
 #ifdef AVL_CPLUSPLUS
 }
 #endif
