@@ -598,6 +598,8 @@ extern "C"
     enum avl62x1_mpeg_format e_Format;
     enum avl62x1_mpeg_serial_pin e_SerPin;
 
+    struct avl62x1_error_stats error_stats;
+
     //The desired MPEG clock frequency in units of Hz.
     //It is updated with the exact value after the demod has initialized
     uint32_t m_MPEGFrequency_Hz;

@@ -36,7 +36,7 @@
 
 #include "aml_fe_avl6261_av201x.h"
 
-#include "avl6261.h"
+#include "avl62x1.h"
 #ifdef USE_AVL_201X
 #include "av201x_avl_top.h"
 #else
@@ -67,9 +67,9 @@ MODULE_PARM_DESC(frontend_reset, "\n\t\t Reset GPIO of frontend");
 static int frontend_reset = -1;
 module_param(frontend_reset, int, 0644);
 
-static struct aml_fe avl6261_fe[FE_DEV_COUNT];
+static struct aml_fe avl62x1_fe[FE_DEV_COUNT];
 
-static char *device_name = "avl6261";
+static char *device_name = "avl62x1";
 
 #ifdef USE_AVL_201X
 static struct av201x_avl_config av201x_config;
@@ -77,27 +77,27 @@ static struct av201x_avl_config av201x_config;
 static struct av201x_config av201x_config;
 #endif
 
-static struct avl6261_config avl6261_config;
+static struct avl62x1_config avl62x1_config;
 
-int avl6261_Reset(void)
+int avl62x1_Reset(void)
 {
-  pr_dbg("avl6261_Reset!\n");
+  pr_dbg("avl62x1_Reset!\n");
 
   gpio_request(frontend_reset, device_name);
   gpio_direction_output(frontend_reset, 0);
   msleep(600);
-  pr_dbg("avl6261_Reset 2\n");
+  pr_dbg("avl62x1_Reset 2\n");
   gpio_request(frontend_reset, device_name);
   gpio_direction_output(frontend_reset, 1);
   msleep(200);
-  pr_dbg("avl6261_Reset 3\n");
+  pr_dbg("avl62x1_Reset 3\n");
 
   return 0;
 }
 
-int avl6261_gpio(void)
+int avl62x1_gpio(void)
 {
-  pr_dbg("avl6261_gpio!\n");
+  pr_dbg("avl62x1_gpio!\n");
 
   gpio_request(frontend_power, device_name);
   gpio_direction_output(frontend_power, 1);
@@ -105,7 +105,7 @@ int avl6261_gpio(void)
   return 0;
 }
 
-static int avl6261_fe_init(struct aml_dvb *advb, struct platform_device *pdev, struct aml_fe *fe, int id)
+static int avl62x1_fe_init(struct aml_dvb *advb, struct platform_device *pdev, struct aml_fe *fe, int id)
 {
   struct dvb_frontend_ops *ops;
   int ret, i2c_adap_id = 1;
@@ -118,14 +118,14 @@ static int avl6261_fe_init(struct aml_dvb *advb, struct platform_device *pdev, s
   int gpio_reset, gpio_power;
 #endif
 
-  struct avl6261_priv *demod_priv;
+  struct avl62x1_priv *demod_priv;
 #ifdef USE_AVL_201X
   struct av201x_avl_priv *tuner_priv;
 #else
   struct av201x_priv *tuner_priv;
 #endif
 
-  pr_inf("Init AVL6261 frontend %d\n", id);
+  pr_inf("Init AVL62x1 frontend %d\n", id);
 
 #ifdef CONFIG_OF
   pr_inf("CONFIG_OF defined\n");
@@ -154,9 +154,10 @@ static int avl6261_fe_init(struct aml_dvb *advb, struct platform_device *pdev, s
   }
 #endif /*CONFIG_OF*/
 
-  avl6261_config.demod_address = (uint8_t)demod_i2c_addr;
-  avl6261_config.tuner_address = (uint8_t)tuner_i2c_addr;
-  av201x_config.i2c_address = avl6261_config.tuner_address;
+  avl62x1_config.demod_address = (uint8_t)demod_i2c_addr;
+  avl62x1_config.tuner_address = (uint8_t)tuner_i2c_addr;
+  avl62x1_config.demod_refclk = 1; //27MHz
+  av201x_config.i2c_address = avl62x1_config.tuner_address;
   av201x_config.id = ID_AV2018;
 
   frontend_reset = gpio_reset;
@@ -170,17 +171,17 @@ static int avl6261_fe_init(struct aml_dvb *advb, struct platform_device *pdev, s
     goto err_resource;
   }
 
-  avl6261_gpio();
-  avl6261_Reset();
-  fe->fe = dvb_attach(avl6261_attach, &avl6261_config, i2c_handle);
+  avl62x1_gpio();
+  avl62x1_Reset();
+  fe->fe = dvb_attach(avl62x1_attach, &avl62x1_config, i2c_handle);
 
   if (!fe->fe)
   {
-    pr_err("avl6261_attach attach failed!!!\n");
+    pr_err("avl62x1_attach attach failed!!!\n");
     ret = -ENOMEM;
     goto err_resource;
   }
-  demod_priv = (struct avl6261_priv *)fe->fe->demodulator_priv;
+  demod_priv = (struct avl62x1_priv *)fe->fe->demodulator_priv;
 
 #ifdef USE_AVL_201X
   if (dvb_attach(av201x_avl_attach, fe->fe, &av201x_config, i2c_handle) == NULL)
@@ -203,11 +204,11 @@ static int avl6261_fe_init(struct aml_dvb *advb, struct platform_device *pdev, s
   tuner_priv = (struct av201x_priv *)fe->fe->tuner_priv;
 #endif
 
-  pr_inf("AVL6261 and AV201X attached!\n");
+  pr_inf("AVL62x1 and AV201X attached!\n");
 
   if ((ret = dvb_register_frontend(&advb->dvb_adapter, fe->fe)))
   {
-    pr_err("Frontend AVL6261 registration failed!!!\n");
+    pr_err("Frontend AVL62x1 registration failed!!!\n");
     ops = &fe->fe->ops;
     if (ops->release != NULL)
       ops->release(fe->fe);
@@ -216,7 +217,7 @@ static int avl6261_fe_init(struct aml_dvb *advb, struct platform_device *pdev, s
     goto err_resource;
   }
 
-  pr_inf("Frontend AVL6261 registered!\n");
+  pr_inf("Frontend AVL62x1 registered!\n");
 
   return 0;
 
@@ -224,21 +225,21 @@ err_resource:
   return ret;
 }
 
-static int avl6261_fe_probe(struct platform_device *pdev)
+static int avl62x1_fe_probe(struct platform_device *pdev)
 {
   int ret = 0;
 
   struct aml_dvb *dvb = aml_get_dvb_device();
 
-  if (avl6261_fe_init(dvb, pdev, &avl6261_fe[0], 0) < 0)
+  if (avl62x1_fe_init(dvb, pdev, &avl62x1_fe[0], 0) < 0)
     return -ENXIO;
 
-  platform_set_drvdata(pdev, &avl6261_fe[0]);
+  platform_set_drvdata(pdev, &avl62x1_fe[0]);
 
   return ret;
 }
 
-static void avl6261_fe_release(struct aml_dvb *advb, struct aml_fe *fe)
+static void avl62x1_fe_release(struct aml_dvb *advb, struct aml_fe *fe)
 {
   if (fe && fe->fe)
   {
@@ -247,26 +248,26 @@ static void avl6261_fe_release(struct aml_dvb *advb, struct aml_fe *fe)
   }
 }
 
-static int avl6261_fe_remove(struct platform_device *pdev)
+static int avl62x1_fe_remove(struct platform_device *pdev)
 {
   struct aml_fe *drv_data = platform_get_drvdata(pdev);
   struct aml_dvb *dvb = aml_get_dvb_device();
 
   platform_set_drvdata(pdev, NULL);
-  avl6261_fe_release(dvb, drv_data);
+  avl62x1_fe_release(dvb, drv_data);
 
   return 0;
 }
 
-static int avl6261_fe_resume(struct platform_device *pdev)
+static int avl62x1_fe_resume(struct platform_device *pdev)
 {
-  pr_dbg("avl6261_fe_resume \n");
+  pr_dbg("avl62x1_fe_resume \n");
   return 0;
 }
 
-static int avl6261_fe_suspend(struct platform_device *pdev, pm_message_t state)
+static int avl62x1_fe_suspend(struct platform_device *pdev, pm_message_t state)
 {
-  pr_dbg("avl6261_fe_suspend \n");
+  pr_dbg("avl62x1_fe_suspend \n");
   return 0;
 }
 
@@ -280,12 +281,12 @@ static const struct of_device_id aml_fe_dt_match[] = {
 #endif /*CONFIG_OF*/
 
 static struct platform_driver aml_fe_driver = {
-    .probe = avl6261_fe_probe,
-    .remove = avl6261_fe_remove,
-    .resume = avl6261_fe_resume,
-    .suspend = avl6261_fe_suspend,
+    .probe = avl62x1_fe_probe,
+    .remove = avl62x1_fe_remove,
+    .resume = avl62x1_fe_resume,
+    .suspend = avl62x1_fe_suspend,
     .driver = {
-        .name = "avl6261",
+        .name = "avl62x1",
         .owner = THIS_MODULE,
 #ifdef CONFIG_OF
         .of_match_table = aml_fe_dt_match,
@@ -305,5 +306,5 @@ static void __exit avlfrontend_exit(void)
 module_init(avlfrontend_init);
 module_exit(avlfrontend_exit);
 MODULE_AUTHOR("Availink");
-MODULE_DESCRIPTION("AVL6261 + AV201X frontend driver");
+MODULE_DESCRIPTION("AVL62X1 + AV201X frontend driver");
 MODULE_LICENSE("GPL");

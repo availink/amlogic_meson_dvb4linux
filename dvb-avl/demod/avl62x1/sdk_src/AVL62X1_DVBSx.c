@@ -21,6 +21,7 @@
 #include "AVL62X1_DVBSx.h"
 
 int32_t carrier_freq_offset_hz = 0;
+struct avl62x1_error_stats AVL62X1_esm;
 
 uint16_t Init_AVL62X1_ChipObject(struct avl62x1_chip *pAVL_ChipObject)
 {
@@ -492,8 +493,6 @@ uint16_t IRx_ErrorStatMode_AVL62X1(struct avl62x1_error_stats_config *stErrorSta
 
   return (r);
 }
-
-struct avl62x1_error_stats AVL62X1_esm;
 
 uint16_t IRx_ResetBER_AVL62X1(struct avl62x1_ber_config *pBERConfig, struct avl62x1_chip *pAVL_Chip)
 {

@@ -1,5 +1,6 @@
 /*
- * Availink AVL6261 DVB-S/S2/S2X demodulator driver
+ * Availink AVL62X1 DVB-S/S2/S2X demodulator driver
+ * Supports AVL6221 and AVL6261. NOT AVL6211
  *
  * Copyright (C) 2020 Availink, Inc. (opensource@availink.com)
  *
@@ -18,8 +19,8 @@
  *    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef _AVL6261_H_
-#define _AVL6261_H_
+#ifndef _AVL62X1_H_
+#define _AVL62X1_H_
 
 #include <linux/firmware.h>
 #include <linux/dvb/frontend.h>
@@ -34,28 +35,30 @@
 //MAJOR = public API rev
 //minor = SDK API rev (a.k.a. SDK API MAJOR rev)
 //build number = increment on every change to implementation
-#define AVL6261_VERSION       "1." xstr(AVL62X1_API_VER_MAJOR) ".0"
+#define AVL62X1_VERSION "1." xstr(AVL62X1_API_VER_MAJOR) ".0"
 
-
-struct avl6261_priv
+struct avl62x1_priv
 {
-  struct i2c_adapter *i2c;
-  struct avl6261_config *config;
-  struct dvb_frontend frontend;
-  enum fe_delivery_system delivery_system;
-  struct avl62x1_chip *chip;
-  const struct firmware *fw;
+	struct i2c_adapter *i2c;
+	struct avl62x1_config *config;
+	struct dvb_frontend frontend;
+	enum fe_delivery_system delivery_system;
+	struct avl62x1_chip *chip;
+	const struct firmware *fw;
 };
 
-struct avl6261_config
+struct avl62x1_config
 {
-  int i2c_id;        // i2c adapter (master) id
-  void *i2c_adapter; // i2c adapter (master)
-  uint8_t demod_address;  // demodulator i2c address
-  uint8_t tuner_address;  // tuner i2c address
-  unsigned char eDiseqcStatus;
+	int i2c_id;	    // i2c adapter (master) id
+	void *i2c_adapter;     // i2c adapter (master)
+	uint8_t demod_address; // demodulator i2c address
+	uint8_t tuner_address; // tuner i2c address
+	uint8_t diseqc_status;
+	/* demod reference clock 0: 16MHz; 1: 27MHz, 2: 30MHz */
+	uint8_t demod_refclk;
 };
 
-extern struct dvb_frontend *avl6261_attach(struct avl6261_config *config, struct i2c_adapter *i2c);
+extern struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
+					   struct i2c_adapter *i2c);
 
-#endif /* AVL6261_H */
+#endif /* _AVL62X1_H_ */

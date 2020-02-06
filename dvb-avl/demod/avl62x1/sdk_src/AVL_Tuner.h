@@ -21,7 +21,7 @@
 #ifndef _AVL_TUNER_H_
 #define _AVL_TUNER_H_
 
-#include "avl_bsp.h"
+#include "avl_lib.h"
 
 #ifdef AVL_CPLUSPLUS
 extern "C"
