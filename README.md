@@ -24,7 +24,9 @@ dvb-avl/
 |      |
 |      \----tunerABC/ : future tuner driver source
 |
-avl6261.patch : firmware blob for AVL6261 demodulator
+\------firmware/
+       |
+       \----availink/ : Firmware blobs that should be moved to /lib/firmware/availink
 ```
 
 ### How to use with LibreELEC/CoreELEC
@@ -65,7 +67,7 @@ index da4447d180..77f1d2e5d4 100644
    PKG_FW_DIR="$INSTALL/$(get_kernel_overlay_dir)/lib/firmware"
    mkdir -p "$PKG_FW_DIR"
    cp -a "$PKG_BUILD/firmware/"* "$PKG_FW_DIR"
-+  cp -a ${amlogic_meson_dvb4linux}/avl6261.patch "$PKG_FW_DIR"
++  cp -ar ${amlogic_meson_dvb4linux}/firmware/availink "$PKG_FW_DIR"
  }
 </pre>
 * build LibreELEC/CoreELEC image

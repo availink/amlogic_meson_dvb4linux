@@ -667,7 +667,7 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 	dev_info(&priv->i2c->dev, KBUILD_MODNAME ": found AVL62x1 id=0x%x", id);
 
 	fw_status = request_firmware(&priv->fw,
-				     "avl62x1.patch",
+				     "availink/avl62x1.patch",
 				     i2c->dev.parent);
 	if (fw_status < 0)
 	{
