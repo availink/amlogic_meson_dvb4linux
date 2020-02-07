@@ -31,7 +31,7 @@ dvb-avl/
 
 ### How to use with LibreELEC/CoreELEC
 For now, these are a hackfest.
-* replace the dvb-avl directory in build.<target>/media_tree_cc_aml-<hash>/drivers/media/platform/meson/ with the one from this repository.
+* replace the dvb-avl directory in build.\<target\>/media_tree_cc_aml-\<hash\>/drivers/media/platform/meson/ with the one from this repository.
 * patch the packages/linux-driver-addons/dvb/crazycat_aml/package.mk file as follows:
 <pre>
 diff --git a/packages/linux-driver-addons/dvb/crazycat_aml/package.mk b/packages/linux-driver-addons/dvb/crazycat_aml/package.mk
