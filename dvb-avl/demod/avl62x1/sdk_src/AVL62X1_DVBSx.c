@@ -20,18 +20,17 @@
 
 #include "AVL62X1_DVBSx.h"
 
-int32_t carrier_freq_offset_hz = 0;
-struct avl62x1_error_stats AVL62X1_esm;
 
-uint16_t Init_AVL62X1_ChipObject(struct avl62x1_chip *pAVL_ChipObject)
+uint16_t Init_AVL62X1_ChipObject(struct avl62x1_chip *pAVL_Chip)
 {
   uint16_t r = AVL_EC_OK;
 
-  pAVL_ChipObject->m_Diseqc_OP_Status = AVL62X1_DOS_Uninitialized;
-  r = avl_bsp_init_semaphore(&(pAVL_ChipObject->m_semRx));
-  r |= avl_bsp_init_semaphore(&(pAVL_ChipObject->m_semDiseqc));
+  pAVL_Chip->chip_priv->diseqc_op_status = AVL62X1_DOS_Uninitialized;
+  r = avl_bsp_init_semaphore(&(pAVL_Chip->chip_priv->m_semRx));
+  r |= avl_bsp_init_semaphore(&(pAVL_Chip->chip_priv->m_semDiseqc));
 
-  r |= avl_bms_initialize(); // there is a internal protection to assure it will be initialized only once.
+  // there is internal protection to assure it will be initialized only once.
+  r |= avl_bms_initialize();
 
   return (r);
 }
@@ -42,8 +41,8 @@ uint16_t IBase_CheckChipReady_AVL62X1(struct avl62x1_chip *pAVL_Chip)
   uint32_t uiCoreReadyWord = 0;
   uint32_t uiCoreRunning = 0;
 
-  r = avl_bms_read32((uint16_t)(pAVL_Chip->usI2CAddr), hw_AVL62X1_cpucore_top_srst, &uiCoreRunning);
-  r |= avl_bms_read32((uint16_t)(pAVL_Chip->usI2CAddr), rs_AVL62X1_core_ready_word, &uiCoreReadyWord);
+  r = avl_bms_read32((uint16_t)(pAVL_Chip->chip_pub->i2c_addr), hw_AVL62X1_cpucore_top_srst, &uiCoreRunning);
+  r |= avl_bms_read32((uint16_t)(pAVL_Chip->chip_pub->i2c_addr), rs_AVL62X1_core_ready_word, &uiCoreReadyWord);
   if ((AVL_EC_OK == r))
   {
     if ((1 == uiCoreRunning) || (uiCoreReadyWord != 0x5AA57FF7))
@@ -62,15 +61,15 @@ uint16_t IBase_Initialize_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 
   r |= IBase_DownloadPatch_AVL62X1(pAVL_Chip);
 
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_mpeg_ref_clk_Hz_iaddr, pAVL_Chip->m_MPEGFrequency_Hz);
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_DMD_xtal_frequency_caddr, (uint8_t)(pAVL_Chip->e_Xtal));
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_mpeg_ref_clk_Hz_iaddr, pAVL_Chip->chip_pub->req_mpeg_clk_freq_hz);
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_DMD_xtal_frequency_caddr, (uint8_t)(pAVL_Chip->chip_pub->ref_clk));
 
   //load defaults command will load S2X defaults and program PLL based on XTAL and MPEG ref clk configurations
   r |= IBase_SendRxOP_AVL62X1(CMD_LD_DEFAULT, pAVL_Chip);
 
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_fec_clk_Hz_iaddr, &(pAVL_Chip->m_FECFrequency_Hz));
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_sys_clk_Hz_iaddr, &(pAVL_Chip->m_CoreFrequency_Hz));
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_mpeg_ref_clk_Hz_iaddr, &(pAVL_Chip->m_MPEGFrequency_Hz));
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_fec_clk_Hz_iaddr, &(pAVL_Chip->chip_priv->fec_clk_freq_hz));
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_sys_clk_Hz_iaddr, &(pAVL_Chip->chip_priv->core_clk_freq_hz));
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_mpeg_ref_clk_Hz_iaddr, &(pAVL_Chip->chip_priv->mpeg_clk_freq_hz));
 
   return (r);
 }
@@ -81,10 +80,10 @@ uint16_t IBase_GetVersion_AVL62X1(struct avl62x1_ver_info *pVer_info, struct avl
   uint32_t uiTemp = 0;
   uint8_t ucBuff[4] = {0};
 
-  r = avl_bms_read32(pAVL_Chip->usI2CAddr, 0x40000, &uiTemp);
+  r = avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, 0x40000, &uiTemp);
   pVer_info->m_Chip = uiTemp;
 
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, s_AVL62X1_DMD_patch_ver_iaddr, &uiTemp);
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, s_AVL62X1_DMD_patch_ver_iaddr, &uiTemp);
   avl_int_to_bytes(uiTemp, ucBuff);
   pVer_info->m_Patch.m_Major = ucBuff[0];
   pVer_info->m_Patch.m_Minor = ucBuff[1];
@@ -103,7 +102,7 @@ uint16_t IBase_GetFunctionMode_AVL62X1(enum avl62x1_functional_mode *pFuncMode, 
   uint16_t r = AVL_EC_OK;
   uint8_t ucTemp = 0;
 
-  r = avl_bms_read8(pAVL_Chip->usI2CAddr, s_AVL62X1_S2X_active_demod_mode_caddr, &ucTemp);
+  r = avl_bms_read8(pAVL_Chip->chip_pub->i2c_addr, s_AVL62X1_S2X_active_demod_mode_caddr, &ucTemp);
   *pFuncMode = (avl62x1_functional_mode)ucTemp;
 
   return (r);
@@ -114,7 +113,7 @@ uint16_t IBase_GetRxOPStatus_AVL62X1(struct avl62x1_chip *pAVL_Chip)
   uint16_t r = AVL_EC_OK;
   uint16_t uiCmd = 0;
 
-  r = avl_bms_read16(pAVL_Chip->usI2CAddr, c_AVL62X1_DMD_command_saddr, &uiCmd);
+  r = avl_bms_read16(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_DMD_command_saddr, &uiCmd);
   if (AVL_EC_OK == r)
   {
     if (CMD_IDLE != uiCmd)
@@ -139,7 +138,7 @@ uint16_t IBase_SendRxOP_AVL62X1(uint8_t ucOpCmd, struct avl62x1_chip *pAVL_Chip)
   const uint16_t uiMaxRetries = 50; //the time out window is 10*50 = 500ms ( change for sysy using.)
   uint32_t i = 0;
 
-  r = avl_bsp_wait_semaphore(&(pAVL_Chip->m_semRx));
+  r = avl_bsp_wait_semaphore(&(pAVL_Chip->chip_priv->m_semRx));
 
   while (AVL_EC_OK != IBase_GetRxOPStatus_AVL62X1(pAVL_Chip))
   {
@@ -155,7 +154,7 @@ uint16_t IBase_SendRxOP_AVL62X1(uint8_t ucOpCmd, struct avl62x1_chip *pAVL_Chip)
     pucBuff[0] = 0;
     pucBuff[1] = ucOpCmd;
     uiTemp = avl_bytes_to_short(pucBuff);
-    r |= avl_bms_write16((uint16_t)(pAVL_Chip->usI2CAddr), c_AVL62X1_DMD_command_saddr, uiTemp);
+    r |= avl_bms_write16((uint16_t)(pAVL_Chip->chip_pub->i2c_addr), c_AVL62X1_DMD_command_saddr, uiTemp);
   }
 
   i = 0;
@@ -169,7 +168,7 @@ uint16_t IBase_SendRxOP_AVL62X1(uint8_t ucOpCmd, struct avl62x1_chip *pAVL_Chip)
     avl_bsp_delay(uiTimeDelay);
   }
 
-  r |= avl_bsp_release_semaphore(&(pAVL_Chip->m_semRx));
+  r |= avl_bsp_release_semaphore(&(pAVL_Chip->chip_priv->m_semRx));
 
   return (r);
 }
@@ -179,7 +178,7 @@ uint16_t IBase_GetSPOPStatus_AVL62X1(struct avl62x1_chip *pAVL_Chip)
   uint16_t r = AVL_EC_OK;
   uint16_t uiCmd = 0;
 
-  r = avl_bms_read16(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_command_saddr, &uiCmd);
+  r = avl_bms_read16(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_command_saddr, &uiCmd);
   if (AVL_EC_OK == r)
   {
     if (CMD_IDLE != uiCmd)
@@ -204,7 +203,7 @@ uint16_t IBase_SendSPOP_AVL62X1(uint8_t ucOpCmd, struct avl62x1_chip *pAVL_Chip)
   const uint16_t uiMaxRetries = 50; //the time out window is 10*50 = 500ms
   uint32_t i = 0;
 
-  r = avl_bsp_wait_semaphore(&(pAVL_Chip->m_semRx));
+  r = avl_bsp_wait_semaphore(&(pAVL_Chip->chip_priv->m_semRx));
 
   while (AVL_EC_OK != IBase_GetSPOPStatus_AVL62X1(pAVL_Chip))
   {
@@ -220,7 +219,7 @@ uint16_t IBase_SendSPOP_AVL62X1(uint8_t ucOpCmd, struct avl62x1_chip *pAVL_Chip)
     pucBuff[0] = 0;
     pucBuff[1] = ucOpCmd;
     uiTemp = avl_bytes_to_short(pucBuff);
-    r |= avl_bms_write16((uint16_t)(pAVL_Chip->usI2CAddr), c_AVL62X1_SP_sp_command_saddr, uiTemp);
+    r |= avl_bms_write16((uint16_t)(pAVL_Chip->chip_pub->i2c_addr), c_AVL62X1_SP_sp_command_saddr, uiTemp);
   }
 
   i = 0;
@@ -234,7 +233,7 @@ uint16_t IBase_SendSPOP_AVL62X1(uint8_t ucOpCmd, struct avl62x1_chip *pAVL_Chip)
     avl_bsp_delay(uiTimeDelay);
   }
 
-  r |= avl_bsp_release_semaphore(&(pAVL_Chip->m_semRx));
+  r |= avl_bsp_release_semaphore(&(pAVL_Chip->chip_priv->m_semRx));
 
   return (r);
 }
@@ -274,25 +273,25 @@ uint16_t IBase_Initialize_TunerI2C_AVL62X1(struct avl62x1_chip *pAVL_Chip)
   uint32_t bit_rpt_divider = 0;
 
   //reset tuner i2c block
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, psc_tuner_i2c__tuner_i2c_srst, 1);
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, psc_tuner_i2c__tuner_i2c_srst, 0);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, psc_tuner_i2c__tuner_i2c_srst, 1);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, psc_tuner_i2c__tuner_i2c_srst, 0);
 
   //tuner_i2c_cntrl: {rpt_addr[23:16],...,i2c_mode[8],...,src_sel[0]}
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, psc_tuner_i2c__tuner_i2c_cntrl, &uiTemp);
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, psc_tuner_i2c__tuner_i2c_cntrl, &uiTemp);
   uiTemp = (uiTemp & 0xFFFFFFFE);
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, psc_tuner_i2c__tuner_i2c_cntrl, uiTemp);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, psc_tuner_i2c__tuner_i2c_cntrl, uiTemp);
 
   //hw_i2c_bit_rpt_cntrl: {doubleFFen, stop_check, rpt_sel, rpt_enable}
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, psc_tuner_i2c__tuner_hw_i2c_bit_rpt_cntrl, 0x6);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, psc_tuner_i2c__tuner_hw_i2c_bit_rpt_cntrl, 0x6);
 
-  bit_rpt_divider = (0x2A) * (pAVL_Chip->m_CoreFrequency_Hz / 1000) / (240 * 1000);
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, psc_tuner_i2c__tuner_hw_i2c_bit_rpt_clk_div, bit_rpt_divider);
+  bit_rpt_divider = (0x2A) * (pAVL_Chip->chip_priv->core_clk_freq_hz / 1000) / (240 * 1000);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, psc_tuner_i2c__tuner_hw_i2c_bit_rpt_clk_div, bit_rpt_divider);
 
   //configure GPIO
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, gpio_debug__i2c_clk2_sel, 7);  //M3_SCL
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, gpio_debug__i2c_data2_sel, 8); //M3_SDA
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, gpio_debug__m3_scl_sel, 6);    //I2C_CLK2
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, gpio_debug__m3_sda_sel, 5);    //I2C_DATA2
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, gpio_debug__i2c_clk2_sel, 7);  //M3_SCL
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, gpio_debug__i2c_data2_sel, 8); //M3_SDA
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, gpio_debug__m3_scl_sel, 6);    //I2C_CLK2
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, gpio_debug__m3_sda_sel, 5);    //I2C_DATA2
 
   return (r);
 }
@@ -301,8 +300,8 @@ uint16_t IRx_Initialize_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 {
   uint16_t r = AVL_EC_OK;
 
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_input_format_caddr, 0x0); // 0: 2's complement, 1: offset binary
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_input_select_caddr, 0x1); //0: Digital, 1: ADC in
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_input_format_caddr, 0x0); // 0: 2's complement, 1: offset binary
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_input_select_caddr, 0x1); //0: Digital, 1: ADC in
 
   return (r);
 }
@@ -312,7 +311,7 @@ uint16_t IRx_GetTunerPola_AVL62X1(enum avl62x1_spectrum_polarity *pTuner_Pol, st
   uint16_t r = AVL_EC_OK;
   uint8_t uiTemp = 0;
 
-  r |= avl_bms_read8(pAVL_Chip->usI2CAddr, s_AVL62X1_S2X_carrier_spectrum_invert_status_caddr, &uiTemp);
+  r |= avl_bms_read8(pAVL_Chip->chip_pub->i2c_addr, s_AVL62X1_S2X_carrier_spectrum_invert_status_caddr, &uiTemp);
   *pTuner_Pol = (enum avl62x1_spectrum_polarity)uiTemp;
 
   return (r);
@@ -322,7 +321,7 @@ uint16_t IRx_SetTunerPola_AVL62X1(enum avl62x1_spectrum_polarity enumTuner_Pol, 
 {
   uint16_t r = AVL_EC_OK;
 
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_tuner_spectrum_invert_caddr, (uint8_t)enumTuner_Pol);
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_tuner_spectrum_invert_caddr, (uint8_t)enumTuner_Pol);
 
   return (r);
 }
@@ -333,12 +332,12 @@ uint16_t IRx_ConfigPLS_AVL62X1(uint32_t uiShiftValue, struct avl62x1_chip *pAVL_
   uint32_t uiTemp = 0;
   uint16_t r = AVL_EC_OK;
 
-  r = avl_bms_read32(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_ConfiguredPLScramKey_iaddr, &uiTemp);
+  r = avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_ConfiguredPLScramKey_iaddr, &uiTemp);
   uiTemp &= (!(1 << 23)); //bit[23] eq 0 -> Manually configure scramble code according to bits [18:0]
   uiTemp &= (!(1 << 18)); //bit[18] eq 0 -> bits[17:0] represent the sequence shift of the x(i) sequence in the Gold code as defined as the "code number n" in the DVB-S2 standard
   uiTemp |= 0x3FFFF;
   uiTemp &= uiShiftValue;
-  r = avl_bms_write32(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_ConfiguredPLScramKey_iaddr, uiTemp);
+  r = avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_ConfiguredPLScramKey_iaddr, uiTemp);
 
   return (r);
 }
@@ -347,7 +346,7 @@ uint16_t IRx_SetPLSAutoDetect_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 {
   uint16_t r = AVL_EC_OK;
 
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_ConfiguredPLScramKey_iaddr, AVL62X1_PL_SCRAM_AUTO);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_ConfiguredPLScramKey_iaddr, AVL62X1_PL_SCRAM_AUTO);
 
   return (r);
 }
@@ -365,18 +364,18 @@ uint16_t IRx_DriveAGC_AVL62X1(enum avl62x1_switch enumOn_Off, struct avl62x1_chi
   if (AVL62X1_ON == enumOn_Off)
   {
     //set RF AGC polarity according to AGC slope sign
-    if (pAVL_Chip->pTuner->fpGetAGCSlope == nullptr)
+    if (pAVL_Chip->chip_pub->pTuner->fpGetAGCSlope == nullptr)
     {
       rfagc_slope = -1;
     }
     else
     {
-      pAVL_Chip->pTuner->fpGetAGCSlope(pAVL_Chip->pTuner, &rfagc_slope);
+      pAVL_Chip->chip_pub->pTuner->fpGetAGCSlope(pAVL_Chip->chip_pub->pTuner, &rfagc_slope);
     }
-    r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_S2X_rf_agc_pol_caddr, (uint8_t)(rfagc_slope < 0));
+    r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_rf_agc_pol_caddr, (uint8_t)(rfagc_slope < 0));
 
     //set min and max gain values according to AGC saturation points
-    if (pAVL_Chip->pTuner->fpGetMinGainVoltage == nullptr || pAVL_Chip->pTuner->fpGetMaxGainVoltage == nullptr)
+    if (pAVL_Chip->chip_pub->pTuner->fpGetMinGainVoltage == nullptr || pAVL_Chip->chip_pub->pTuner->fpGetMaxGainVoltage == nullptr)
     {
       //set some reasonable defaults
       if (rfagc_slope > 0)
@@ -392,8 +391,8 @@ uint16_t IRx_DriveAGC_AVL62X1(enum avl62x1_switch enumOn_Off, struct avl62x1_chi
     }
     else
     {
-      pAVL_Chip->pTuner->fpGetMinGainVoltage(pAVL_Chip->pTuner, &min_gain_mV);
-      pAVL_Chip->pTuner->fpGetMaxGainVoltage(pAVL_Chip->pTuner, &max_gain_mV);
+      pAVL_Chip->chip_pub->pTuner->fpGetMinGainVoltage(pAVL_Chip->chip_pub->pTuner, &min_gain_mV);
+      pAVL_Chip->chip_pub->pTuner->fpGetMaxGainVoltage(pAVL_Chip->chip_pub->pTuner, &max_gain_mV);
       min_gain_mV = AVL_MIN(min_gain_mV, 3300);
       max_gain_mV = AVL_MIN(max_gain_mV, 3300);
     }
@@ -412,27 +411,27 @@ uint16_t IRx_DriveAGC_AVL62X1(enum avl62x1_switch enumOn_Off, struct avl62x1_chi
     min_gain = AVL_MIN(min_gain, 0xFFFF);
     max_gain = AVL_MIN(max_gain, 0xFFFF);
 
-    r |= avl_bms_write16((pAVL_Chip->usI2CAddr), c_AVL62X1_S2X_rf_agc_min_gain_saddr, min_gain);
-    r |= avl_bms_write16((pAVL_Chip->usI2CAddr), c_AVL62X1_S2X_rf_agc_max_gain_saddr, max_gain);
+    r |= avl_bms_write16((pAVL_Chip->chip_pub->i2c_addr), c_AVL62X1_S2X_rf_agc_min_gain_saddr, min_gain);
+    r |= avl_bms_write16((pAVL_Chip->chip_pub->i2c_addr), c_AVL62X1_S2X_rf_agc_max_gain_saddr, max_gain);
 
     //enable sigma delta output
-    r |= avl_bms_read32((pAVL_Chip->usI2CAddr), aagc__analog_agc_sd_control_reg, &uiTemp);
+    r |= avl_bms_read32((pAVL_Chip->chip_pub->i2c_addr), aagc__analog_agc_sd_control_reg, &uiTemp);
     uiTemp |= (0x1 << 0x1); //agc_sd_on bit
-    r |= avl_bms_write32((pAVL_Chip->usI2CAddr), aagc__analog_agc_sd_control_reg, uiTemp);
+    r |= avl_bms_write32((pAVL_Chip->chip_pub->i2c_addr), aagc__analog_agc_sd_control_reg, uiTemp);
 
     //configure GPIO
-    r |= avl_bms_write32((pAVL_Chip->usI2CAddr), gpio_debug__agc1_sel, 6);
-    r |= avl_bms_write32((pAVL_Chip->usI2CAddr), gpio_debug__agc2_sel, 6);
+    r |= avl_bms_write32((pAVL_Chip->chip_pub->i2c_addr), gpio_debug__agc1_sel, 6);
+    r |= avl_bms_write32((pAVL_Chip->chip_pub->i2c_addr), gpio_debug__agc2_sel, 6);
   }
   else if (AVL62X1_OFF == enumOn_Off)
   {
-    r |= avl_bms_read32((pAVL_Chip->usI2CAddr), aagc__analog_agc_sd_control_reg, &uiTemp);
+    r |= avl_bms_read32((pAVL_Chip->chip_pub->i2c_addr), aagc__analog_agc_sd_control_reg, &uiTemp);
     uiTemp &= ~(0x1 << 0x1); //agc_sd_on bit
-    r |= avl_bms_write32((pAVL_Chip->usI2CAddr), aagc__analog_agc_sd_control_reg, uiTemp);
+    r |= avl_bms_write32((pAVL_Chip->chip_pub->i2c_addr), aagc__analog_agc_sd_control_reg, uiTemp);
 
     //configure GPIO
-    r |= avl_bms_write32((pAVL_Chip->usI2CAddr), gpio_debug__agc1_sel, 2); //high-Z
-    r |= avl_bms_write32((pAVL_Chip->usI2CAddr), gpio_debug__agc2_sel, 2); //high-Z
+    r |= avl_bms_write32((pAVL_Chip->chip_pub->i2c_addr), gpio_debug__agc1_sel, 2); //high-Z
+    r |= avl_bms_write32((pAVL_Chip->chip_pub->i2c_addr), gpio_debug__agc2_sel, 2); //high-Z
   }
   else
   {
@@ -446,12 +445,12 @@ uint16_t IRx_GetCarrierFreqOffset_AVL62X1(int32_t *piFreqOffsetHz, struct avl62x
   uint16_t r = AVL_EC_OK;
   uint32_t uiTemp = 0;
 
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, s_AVL62X1_S2X_carrier_freq_Hz_iaddr, &uiTemp);
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, s_AVL62X1_S2X_carrier_freq_Hz_iaddr, &uiTemp);
   *piFreqOffsetHz = (int32_t)uiTemp;
 
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, s_AVL62X1_S2X_carrier_freq_err_Hz_iaddr, &uiTemp);
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, s_AVL62X1_S2X_carrier_freq_err_Hz_iaddr, &uiTemp);
   *piFreqOffsetHz += (int32_t)uiTemp;
-  *piFreqOffsetHz -= carrier_freq_offset_hz;
+  *piFreqOffsetHz -= pAVL_Chip->chip_priv->carrier_freq_offset_hz;
 
   return (r);
 }
@@ -462,8 +461,8 @@ uint16_t IRx_GetSROffset_AVL62X1(int32_t *piSROffsetPPM, struct avl62x1_chip *pA
   int32_t sr_error = 0;
   uint32_t sr = 0;
 
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, s_AVL62X1_S2X_symbol_rate_Hz_iaddr, &sr);
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, s_AVL62X1_S2X_symbol_rate_error_Hz_iaddr, (uint32_t *)&sr_error);
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, s_AVL62X1_S2X_symbol_rate_Hz_iaddr, &sr);
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, s_AVL62X1_S2X_symbol_rate_error_Hz_iaddr, (uint32_t *)&sr_error);
 
   *piSROffsetPPM = (int32_t)(((long long int)sr_error * ((long long int)1000000)) / (long long int)sr);
   return (r);
@@ -474,21 +473,21 @@ uint16_t IRx_ErrorStatMode_AVL62X1(struct avl62x1_error_stats_config *stErrorSta
   uint16_t r = AVL_EC_OK;
   struct avl_uint64 time_tick_num = {0, 0};
 
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__auto1_manual0_mode__offset, (uint32_t)stErrorStatConfig->eErrorStatMode);
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__timetick1_bytetick0__offset, (uint32_t)stErrorStatConfig->eAutoErrorStatType);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__auto1_manual0_mode__offset, (uint32_t)stErrorStatConfig->eErrorStatMode);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__timetick1_bytetick0__offset, (uint32_t)stErrorStatConfig->eAutoErrorStatType);
 
-  avl_mult_32to64(&time_tick_num, pAVL_Chip->m_MPEGFrequency_Hz / 1000, stErrorStatConfig->uiTimeThresholdMs);
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__time_tick_low__offset, time_tick_num.low_word);
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__time_tick_high__offset, time_tick_num.high_word);
+  avl_mult_32to64(&time_tick_num, pAVL_Chip->chip_priv->mpeg_clk_freq_hz / 1000, stErrorStatConfig->uiTimeThresholdMs);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__time_tick_low__offset, time_tick_num.low_word);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__time_tick_high__offset, time_tick_num.high_word);
 
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__byte_tick_low__offset, (uint32_t)stErrorStatConfig->uiNumberThresholdByte);
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__byte_tick_high__offset, 0); //high 32-bit is not used
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__byte_tick_low__offset, (uint32_t)stErrorStatConfig->uiNumberThresholdByte);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__byte_tick_high__offset, 0); //high 32-bit is not used
 
   if (stErrorStatConfig->eErrorStatMode == AVL62X1_ERROR_STATS_AUTO)
   {
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__tick_clear_req__offset, 0);
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__tick_clear_req__offset, 1);
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__tick_clear_req__offset, 0);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__tick_clear_req__offset, 0);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__tick_clear_req__offset, 1);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__tick_clear_req__offset, 0);
   }
 
   return (r);
@@ -504,72 +503,72 @@ uint16_t IRx_ResetBER_AVL62X1(struct avl62x1_ber_config *pBERConfig, struct avl6
   uint32_t uiBER_FailCnt = 0;
   uint32_t uiBitErrors = 0;
 
-  AVL62X1_esm.m_LFSR_Sync = 0;
-  AVL62X1_esm.m_LostLock = 0;
-  AVL62X1_esm.m_SwCntNumBits.high_word = 0;
-  AVL62X1_esm.m_SwCntNumBits.low_word = 0;
-  AVL62X1_esm.m_SwCntBitErrors.high_word = 0;
-  AVL62X1_esm.m_SwCntBitErrors.low_word = 0;
-  AVL62X1_esm.m_NumBits.high_word = 0;
-  AVL62X1_esm.m_NumBits.low_word = 0;
-  AVL62X1_esm.m_BitErrors.high_word = 0;
-  AVL62X1_esm.m_BitErrors.low_word = 0;
-  AVL62X1_esm.m_BER = 0;
+  pAVL_Chip->chip_priv->error_stats.m_LFSR_Sync = 0;
+  pAVL_Chip->chip_priv->error_stats.m_LostLock = 0;
+  pAVL_Chip->chip_priv->error_stats.m_SwCntNumBits.high_word = 0;
+  pAVL_Chip->chip_priv->error_stats.m_SwCntNumBits.low_word = 0;
+  pAVL_Chip->chip_priv->error_stats.m_SwCntBitErrors.high_word = 0;
+  pAVL_Chip->chip_priv->error_stats.m_SwCntBitErrors.low_word = 0;
+  pAVL_Chip->chip_priv->error_stats.m_NumBits.high_word = 0;
+  pAVL_Chip->chip_priv->error_stats.m_NumBits.low_word = 0;
+  pAVL_Chip->chip_priv->error_stats.m_BitErrors.high_word = 0;
+  pAVL_Chip->chip_priv->error_stats.m_BitErrors.low_word = 0;
+  pAVL_Chip->chip_priv->error_stats.m_BER = 0;
 
   //ber software reset
-  r = avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, &uiTemp);
+  r = avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, &uiTemp);
   uiTemp |= 0x00000002;
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
 
   //alway inverted
   pBERConfig->eBERFBInversion = AVL62X1_LFSR_FB_INVERTED;
 
   //set Test Pattern and Inversion
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, &uiTemp);
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, &uiTemp);
   uiTemp &= 0xFFFFFFCF;
   //BER_Test_Pattern:bit 5 --- 0:LFSR_15; 1:LFSR_23
   //BER_FB_Inversion:bit 4 --- 0:NOT_INVERTED; 1:INVERTED
   uiTemp |= ((uint32_t)(pBERConfig->eBERTestPattern) << 5) | ((uint32_t)(pBERConfig->eBERFBInversion) << 4);
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
 
   uiTemp &= 0xFFFFFE3F;
   uiTemp |= ((pBERConfig->uiLFSRStartPos) << 6); //For SFU or other standard, the start position of LFSR is 1, just follow the 0x47 sync word
-  r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
+  r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
 
   while (!uiLFSR_Sync)
   {
     uiTemp |= 0x00000006;
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
     uiTemp &= 0xFFFFFFFD;
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
 
     uiCnt = 0;
     uiByteCnt = 0;
     while ((uiByteCnt < 1000) && (uiCnt < 200))
     {
-      r |= avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__byte_num, &uiByteCnt);
+      r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__byte_num, &uiByteCnt);
       uiCnt++;
     }
 
     uiTemp |= 0x00000006;
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
     uiTemp &= 0xFFFFFFF9;
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
 
     uiCnt = 0;
     uiByteCnt = 0;
     while ((uiByteCnt < 10000) && (uiCnt < 200))
     {
       uiCnt++;
-      r |= avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__byte_num, &uiByteCnt);
+      r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__byte_num, &uiByteCnt);
     }
 
     uiTemp &= 0xFFFFFFF9;
     uiTemp |= 0x00000002;
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
 
-    r |= avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__byte_num, &uiByteCnt);
-    r |= avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__ber_err_cnt, &uiBitErrors);
+    r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__byte_num, &uiByteCnt);
+    r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__ber_err_cnt, &uiBitErrors);
     if (uiCnt == 200)
     {
       break;
@@ -591,11 +590,11 @@ uint16_t IRx_ResetBER_AVL62X1(struct avl62x1_ber_config *pBERConfig, struct avl6
   if (uiLFSR_Sync == 1)
   {
     uiTemp &= 0xFFFFFFF9;
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
   }
 
   pBERConfig->uiLFSRSynced = uiLFSR_Sync;
-  AVL62X1_esm.m_LFSR_Sync = uiLFSR_Sync;
+  pAVL_Chip->chip_priv->error_stats.m_LFSR_Sync = uiLFSR_Sync;
 
   return (r);
 }
@@ -608,40 +607,40 @@ uint16_t IRx_GetBER_AVL62X1(uint32_t *puiBER_x1e9, struct avl62x1_chip *pAVL_Chi
   uint32_t uiTemp = 0;
   struct avl_uint64 uiTemp64;
 
-  r = avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__ber_err_cnt, &uiHwCntBitErrors);
-  r |= avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__byte_num, &uiHwCntNumBits);
+  r = avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__ber_err_cnt, &uiHwCntBitErrors);
+  r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__byte_num, &uiHwCntNumBits);
   uiHwCntNumBits <<= 3;
 
   //Keep the hw counts into sw struct to avoid hw registers overflow
   if (uiHwCntNumBits > (uint32_t)(1 << 31))
   {
-    r |= avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, &uiTemp);
+    r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, &uiTemp);
     uiTemp |= 0x00000002;
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
-    r |= avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__ber_err_cnt, &uiHwCntBitErrors);
-    r |= avl_bms_read32(pAVL_Chip->usI2CAddr, ber_esm__byte_num, &uiHwCntNumBits);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
+    r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__ber_err_cnt, &uiHwCntBitErrors);
+    r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__byte_num, &uiHwCntNumBits);
     uiTemp &= 0xFFFFFFFD;
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ber_esm__esm_cntrl, uiTemp);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ber_esm__esm_cntrl, uiTemp);
     uiHwCntNumBits <<= 3;
-    avl_add_32to64(&AVL62X1_esm.m_SwCntNumBits, uiHwCntNumBits);
-    avl_add_32to64(&AVL62X1_esm.m_SwCntBitErrors, uiHwCntBitErrors);
+    avl_add_32to64(&pAVL_Chip->chip_priv->error_stats.m_SwCntNumBits, uiHwCntNumBits);
+    avl_add_32to64(&pAVL_Chip->chip_priv->error_stats.m_SwCntBitErrors, uiHwCntBitErrors);
     uiHwCntNumBits = 0;
     uiHwCntBitErrors = 0;
   }
 
-  AVL62X1_esm.m_NumBits.high_word = AVL62X1_esm.m_SwCntNumBits.high_word;
-  AVL62X1_esm.m_NumBits.low_word = AVL62X1_esm.m_SwCntNumBits.low_word;
-  avl_add_32to64(&AVL62X1_esm.m_NumBits, uiHwCntNumBits);
-  AVL62X1_esm.m_BitErrors.high_word = AVL62X1_esm.m_SwCntBitErrors.high_word;
-  AVL62X1_esm.m_BitErrors.low_word = AVL62X1_esm.m_SwCntBitErrors.low_word;
-  avl_add_32to64(&AVL62X1_esm.m_BitErrors, uiHwCntBitErrors);
+  pAVL_Chip->chip_priv->error_stats.m_NumBits.high_word = pAVL_Chip->chip_priv->error_stats.m_SwCntNumBits.high_word;
+  pAVL_Chip->chip_priv->error_stats.m_NumBits.low_word = pAVL_Chip->chip_priv->error_stats.m_SwCntNumBits.low_word;
+  avl_add_32to64(&pAVL_Chip->chip_priv->error_stats.m_NumBits, uiHwCntNumBits);
+  pAVL_Chip->chip_priv->error_stats.m_BitErrors.high_word = pAVL_Chip->chip_priv->error_stats.m_SwCntBitErrors.high_word;
+  pAVL_Chip->chip_priv->error_stats.m_BitErrors.low_word = pAVL_Chip->chip_priv->error_stats.m_SwCntBitErrors.low_word;
+  avl_add_32to64(&pAVL_Chip->chip_priv->error_stats.m_BitErrors, uiHwCntBitErrors);
 
   // Compute the BER, this BER is multiplied with 1e9 because the float operation is not supported
-  avl_mult_32to64(&uiTemp64, AVL62X1_esm.m_BitErrors.low_word, AVL_CONSTANT_10_TO_THE_9TH);
-  AVL62X1_esm.m_BER = avl_divide_64(AVL62X1_esm.m_NumBits, uiTemp64);
+  avl_mult_32to64(&uiTemp64, pAVL_Chip->chip_priv->error_stats.m_BitErrors.low_word, AVL_CONSTANT_10_TO_THE_9TH);
+  pAVL_Chip->chip_priv->error_stats.m_BER = avl_divide_64(pAVL_Chip->chip_priv->error_stats.m_NumBits, uiTemp64);
 
   //keep the BER user wanted
-  *puiBER_x1e9 = AVL62X1_esm.m_BER;
+  *puiBER_x1e9 = pAVL_Chip->chip_priv->error_stats.m_BER;
 
   return (r);
 }
@@ -649,7 +648,7 @@ uint16_t IRx_GetBER_AVL62X1(uint32_t *puiBER_x1e9, struct avl62x1_chip *pAVL_Chi
 uint16_t IRx_GetAcqRetries_AVL62X1(uint8_t *pucRetryNum, struct avl62x1_chip *pAVL_Chip)
 {
   uint16_t r = AVL_EC_OK;
-  r |= avl_bms_read8(pAVL_Chip->usI2CAddr, s_AVL62X1_S2X_acq_retry_count_caddr, pucRetryNum);
+  r |= avl_bms_read8(pAVL_Chip->chip_pub->i2c_addr, s_AVL62X1_S2X_acq_retry_count_caddr, pucRetryNum);
   return (r);
 }
 
@@ -657,32 +656,27 @@ uint16_t IRx_SetMpegMode_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 {
   uint16_t r = AVL_EC_OK;
 
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_ts_serial_caddr, (uint8_t)(pAVL_Chip->e_Mode));
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_ts0_tsp1_caddr, (uint8_t)(pAVL_Chip->e_Format));
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_ts_clock_edge_caddr, (uint8_t)(pAVL_Chip->e_ClkPol));
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_ts_clock_phase_caddr, (uint8_t)(pAVL_Chip->e_ClkPhase)); //only valid for Parallel
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_ts_adapt_clk_caddr, (uint8_t)(pAVL_Chip->e_ClkAdapt == AVL62X1_MPCA_Adaptive));
-  if (pAVL_Chip->e_Mode == AVL62X1_MPM_Serial)
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_ts_serial_caddr, (uint8_t)(pAVL_Chip->chip_pub->mpeg_mode));
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_ts0_tsp1_caddr, (uint8_t)(pAVL_Chip->chip_pub->mpeg_format));
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_ts_clock_edge_caddr, (uint8_t)(pAVL_Chip->chip_pub->mpeg_clk_pol));
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_ts_clock_phase_caddr, (uint8_t)(pAVL_Chip->chip_pub->mpeg_clk_phase)); //only valid for Parallel
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_ts_adapt_clk_caddr, (uint8_t)(pAVL_Chip->chip_pub->mpeg_clk_adapt == AVL62X1_MPCA_Adaptive));
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, (c_AVL62X1_SP_sp_mpeg_bus_misc_2_iaddr + 2), 0x3); //enhance the MPEG driver ability.
+  r |= IRx_SetMpegErrorPolarity_AVL62X1(pAVL_Chip->chip_pub->mpeg_err_pol, pAVL_Chip);
+  r |= IRx_SetMpegValidPolarity_AVL62X1(pAVL_Chip->chip_pub->mpeg_valid_pol, pAVL_Chip);
+
+
+  if (pAVL_Chip->chip_pub->mpeg_mode == AVL62X1_MPM_Serial)
   {
-    r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_ts_serial_outpin_caddr, (uint8_t)(pAVL_Chip->e_SerPin)); // serial TS Pin
+    r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_ts_serial_outpin_caddr, (uint8_t)(pAVL_Chip->chip_pub->mpeg_serial_pin)); // serial TS Pin
     r |= IRx_EnableMpegContiClock_AVL62X1(pAVL_Chip);
-    r |= avl_bms_write8(pAVL_Chip->usI2CAddr, (c_AVL62X1_SP_sp_mpeg_bus_misc_2_iaddr + 2), 0x3); //enhance the MPEG driver ability.
   }
 
-  if (pAVL_Chip->e_Mode == AVL62X1_MPM_Parallel)
+  if (pAVL_Chip->chip_pub->mpeg_mode == AVL62X1_MPM_Parallel)
   {
-    r |= IRx_EnableMpegContiClock_AVL62X1(pAVL_Chip);
-    r |= avl_bms_write8(pAVL_Chip->usI2CAddr, (c_AVL62X1_SP_sp_mpeg_bus_misc_2_iaddr + 2), 0x3); //enhance the MPEG driver ability.
-  }
-
-#if 1 // only for MPM_Parallel non conti clk mode
-  if (pAVL_Chip->e_Mode == AVL62X1_MPM_Parallel)
-  {
-    r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_ts_adapt_clk_caddr, AVL62X1_MPCA_Adaptive);
+    r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_ts_adapt_clk_caddr, AVL62X1_MPCA_Adaptive);
     r |= IRx_DisableMpegContiClock_AVL62X1(pAVL_Chip);
-    r |= avl_bms_write8(pAVL_Chip->usI2CAddr, (c_AVL62X1_SP_sp_mpeg_bus_misc_2_iaddr + 2), 0x3); //enhance the MPEG driver ability.
   }
-#endif
 
   return (r);
 }
@@ -691,7 +685,7 @@ uint16_t IRx_SetMpegBitOrder_AVL62X1(enum avl62x1_mpeg_bit_order e_BitOrder, str
 {
   uint16_t r = AVL_EC_OK;
 
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_ts_serial_msb_caddr, (uint8_t)e_BitOrder);
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_ts_serial_msb_caddr, (uint8_t)e_BitOrder);
 
   return (r);
 }
@@ -700,7 +694,7 @@ uint16_t IRx_SetMpegErrorPolarity_AVL62X1(enum avl62x1_mpeg_err_polarity e_Error
 {
   uint16_t r = AVL_EC_OK;
 
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_ts_error_polarity_caddr, (uint8_t)e_ErrorPol);
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_ts_error_polarity_caddr, (uint8_t)e_ErrorPol);
 
   return (r);
 }
@@ -709,7 +703,7 @@ uint16_t IRx_SetMpegValidPolarity_AVL62X1(enum avl62x1_mpeg_err_polarity e_Valid
 {
   uint16_t r = AVL_EC_OK;
 
-  r |= avl_bms_write8(pAVL_Chip->usI2CAddr, c_AVL62X1_SP_sp_ts_valid_polarity_caddr, (uint8_t)e_ValidPol);
+  r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_SP_sp_ts_valid_polarity_caddr, (uint8_t)e_ValidPol);
 
   return (r);
 }
@@ -718,7 +712,7 @@ uint16_t IRx_EnableMpegContiClock_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 {
   uint16_t r = AVL_EC_OK;
 
-  r |= avl_bms_write8((uint16_t)(pAVL_Chip->usI2CAddr), c_AVL62X1_SP_sp_enable_ts_continuous_caddr, 1);
+  r |= avl_bms_write8((uint16_t)(pAVL_Chip->chip_pub->i2c_addr), c_AVL62X1_SP_sp_enable_ts_continuous_caddr, 1);
 
   return (r);
 }
@@ -727,7 +721,7 @@ uint16_t IRx_DisableMpegContiClock_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 {
   uint16_t r = AVL_EC_OK;
 
-  r |= avl_bms_write8((uint16_t)(pAVL_Chip->usI2CAddr), c_AVL62X1_SP_sp_enable_ts_continuous_caddr, 0);
+  r |= avl_bms_write8((uint16_t)(pAVL_Chip->chip_pub->i2c_addr), c_AVL62X1_SP_sp_enable_ts_continuous_caddr, 0);
 
   return (r);
 }
@@ -738,13 +732,13 @@ uint16_t IRx_DriveMpegOutput_AVL62X1(enum avl62x1_switch enumOn_Off, struct avl6
 
   if (AVL62X1_ON == enumOn_Off)
   {
-    r |= avl_bms_write8(pAVL_Chip->usI2CAddr, ts_output_intf__mpeg_bus_off, 0x00);
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ts_output_intf__mpeg_bus_e_b, 0x00);
+    r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, ts_output_intf__mpeg_bus_off, 0x00);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ts_output_intf__mpeg_bus_e_b, 0x00);
   }
   else if (AVL62X1_OFF == enumOn_Off)
   {
-    r |= avl_bms_write8(pAVL_Chip->usI2CAddr, ts_output_intf__mpeg_bus_off, 0xFF);
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, ts_output_intf__mpeg_bus_e_b, 0xFFF);
+    r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, ts_output_intf__mpeg_bus_off, 0xFF);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, ts_output_intf__mpeg_bus_e_b, 0xFFF);
   }
   else
   {
@@ -758,43 +752,43 @@ uint16_t IDiseqc_Initialize_AVL62X1(struct avl62x1_diseqc_params *pDiseqcPara, s
   uint16_t r = AVL_EC_OK;
   uint32_t i1 = 0;
 
-  r = avl_bsp_wait_semaphore(&(pAVL_Chip->m_semDiseqc));
+  r = avl_bsp_wait_semaphore(&(pAVL_Chip->chip_priv->m_semDiseqc));
   if (AVL_EC_OK == r)
   {
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, diseqc__diseqc_srst, 1);
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, diseqc__diseqc_samp_frac_n, 2000000);
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, diseqc__diseqc_samp_frac_d, pAVL_Chip->m_CoreFrequency_Hz);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_srst, 1);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_samp_frac_n, 2000000);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_samp_frac_d, pAVL_Chip->chip_priv->core_clk_freq_hz);
 
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, diseqc__diseqc_tone_frac_n, (pDiseqcPara->uiToneFrequencyKHz) << 1);
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, diseqc__diseqc_tone_frac_d, (pAVL_Chip->m_CoreFrequency_Hz / 1000));
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_tone_frac_n, (pDiseqcPara->uiToneFrequencyKHz) << 1);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_tone_frac_d, (pAVL_Chip->chip_priv->core_clk_freq_hz / 1000));
 
     // Initialize the tx_control
-    r |= avl_bms_read32(pAVL_Chip->usI2CAddr, diseqc__diseqc_tx_cntrl, &i1);
+    r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_tx_cntrl, &i1);
     i1 &= 0x00000300;
     i1 |= 0x20; //reset tx_fifo
     i1 |= ((uint32_t)(pDiseqcPara->eTXGap) << 6);
     i1 |= ((uint32_t)(pDiseqcPara->eTxWaveForm) << 4);
     i1 |= (1 << 3); //enable tx gap.
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, diseqc__diseqc_tx_cntrl, i1);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_tx_cntrl, i1);
     i1 &= ~(0x20); //release tx_fifo reset
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, diseqc__diseqc_tx_cntrl, i1);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_tx_cntrl, i1);
 
     // Initialize the rx_control
     i1 = ((uint32_t)(pDiseqcPara->eRxWaveForm) << 2);
     i1 |= (1 << 1); //active the receiver
     i1 |= (1 << 3); //envelop high when tone present
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, diseqc__diseqc_rx_cntrl, i1);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_rx_cntrl, i1);
     i1 = (uint32_t)(pDiseqcPara->eRxTimeout);
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, diseqc__rx_msg_tim, i1);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, diseqc__rx_msg_tim, i1);
 
-    r |= avl_bms_write32(pAVL_Chip->usI2CAddr, diseqc__diseqc_srst, 0);
+    r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_srst, 0);
 
     if (AVL_EC_OK == r)
     {
-      pAVL_Chip->m_Diseqc_OP_Status = AVL62X1_DOS_Initialized;
+      pAVL_Chip->chip_priv->diseqc_op_status = AVL62X1_DOS_Initialized;
     }
   }
-  r |= avl_bsp_release_semaphore(&(pAVL_Chip->m_semDiseqc));
+  r |= avl_bsp_release_semaphore(&(pAVL_Chip->chip_priv->m_semDiseqc));
 
   return (r);
 }
@@ -804,11 +798,11 @@ uint16_t IDiseqc_IsSafeToSwitchMode_AVL62X1(struct avl62x1_chip *pAVL_Chip)
   uint16_t r = AVL_EC_OK;
   uint32_t i1 = 0;
 
-  switch (pAVL_Chip->m_Diseqc_OP_Status)
+  switch (pAVL_Chip->chip_priv->diseqc_op_status)
   {
   case AVL62X1_DOS_InModulation:
   case AVL62X1_DOS_InTone:
-    r |= avl_bms_read32(pAVL_Chip->usI2CAddr, diseqc__diseqc_tx_st, &i1);
+    r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, diseqc__diseqc_tx_st, &i1);
     if (1 != ((i1 & 0x00000040) >> 6)) //check if the last transmit is done
     {
       r |= AVL_EC_RUNNING;
@@ -827,7 +821,7 @@ uint16_t IDiseqc_IsSafeToSwitchMode_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 {
   uint16_t r = AVL_EC_OK;
-  uint8_t *pPatchData = 0;
+  uint8_t *patch_data = 0;
   uint32_t patch_idx = 0;
   uint32_t total_patch_len = 0;
   uint32_t standard = 0;
@@ -878,18 +872,19 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
   uint32_t match_value = 0;
   uint32_t max_polls = 0;
   uint32_t polls = 0;
+  uint32_t variable_array[PATCH_VAR_ARRAY_SIZE];
 
-  pPatchData = pAVL_Chip->pPatchData;
+  patch_data = pAVL_Chip->chip_priv->patch_data;
 
 
   patch_idx = 4; //INDEX IS A BYTE OFFSET
-  total_patch_len = patch_read32_AVL62X1(pPatchData, &patch_idx);
-  standard = patch_read32_AVL62X1(pPatchData, &patch_idx);
-  args_addr = patch_read32_AVL62X1(pPatchData, &patch_idx);
-  data_section_offset = patch_read32_AVL62X1(pPatchData, &patch_idx);
-  reserved_len = patch_read32_AVL62X1(pPatchData, &patch_idx);
+  total_patch_len = patch_read32_AVL62X1(patch_data, &patch_idx);
+  standard = patch_read32_AVL62X1(patch_data, &patch_idx);
+  args_addr = patch_read32_AVL62X1(patch_data, &patch_idx);
+  data_section_offset = patch_read32_AVL62X1(patch_data, &patch_idx);
+  reserved_len = patch_read32_AVL62X1(patch_data, &patch_idx);
   patch_idx += 4 * reserved_len; //skip over reserved area for now
-  script_len = patch_read32_AVL62X1(pPatchData, &patch_idx);
+  script_len = patch_read32_AVL62X1(patch_data, &patch_idx);
 
   if ((patch_idx / 4 + script_len) != data_section_offset)
   {
@@ -901,9 +896,9 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 
   while ((patch_idx / 4 < (script_start_idx + script_len)) && !got_cmd_exit)
   {
-    num_cmd_words = patch_read32_AVL62X1(pPatchData, &patch_idx);
+    num_cmd_words = patch_read32_AVL62X1(patch_data, &patch_idx);
     next_cmd_idx = patch_idx + (num_cmd_words - 1) * 4; //BYTE OFFSET
-    num_cond_words = patch_read32_AVL62X1(pPatchData, &patch_idx);
+    num_cond_words = patch_read32_AVL62X1(patch_data, &patch_idx);
 
     if (num_cond_words == 0)
     {
@@ -913,15 +908,15 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
     {
       for (cond = 0; cond < num_cond_words; cond++)
       {
-        operation = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        value = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        operation = patch_read32_AVL62X1(patch_data, &patch_idx);
+        value = patch_read32_AVL62X1(patch_data, &patch_idx);
         unary_op = (operation >> 8) & 0xFF;
         binary_op = operation & 0xFF;
         addr_mode_op = ((operation >> 16) & 0x3);
 
         if ((addr_mode_op == PATCH_OP_ADDR_MODE_VAR_IDX) && (binary_op != PATCH_OP_BINARY_STORE))
         {
-          value = pAVL_Chip->m_variable_array[value]; //grab variable value
+          value = variable_array[value]; //grab variable value
         }
 
         switch (unary_op)
@@ -945,7 +940,7 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
           condition = value;
           break;
         case PATCH_OP_BINARY_STORE:
-          pAVL_Chip->m_variable_array[value] = condition;
+          variable_array[value] = condition;
           break;
         case PATCH_OP_BINARY_AND:
           condition = condition && value;
@@ -974,7 +969,7 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 
     if (condition)
     {
-      cmd = patch_read32_AVL62X1(pPatchData, &patch_idx);
+      cmd = patch_read32_AVL62X1(patch_data, &patch_idx);
 
       switch (cmd)
       {
@@ -982,28 +977,28 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
       {
         r |= IBase_SendRxOP_AVL62X1(CMD_PING, pAVL_Chip);
 
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        rv0_idx = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        pAVL_Chip->m_variable_array[rv0_idx] = (r == AVL_EC_OK);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
+        rv0_idx = patch_read32_AVL62X1(patch_data, &patch_idx);
+        variable_array[rv0_idx] = (r == AVL_EC_OK);
         patch_idx += 4 * (num_rvs - 1); //skip over any extraneous RV's
         break;
       }
       case PATCH_CMD_VALIDATE_CRC: //0
       {
-        exp_crc_val = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        start_addr = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        length = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        exp_crc_val = patch_read32_AVL62X1(patch_data, &patch_idx);
+        start_addr = patch_read32_AVL62X1(patch_data, &patch_idx);
+        length = patch_read32_AVL62X1(patch_data, &patch_idx);
 
-        r |= avl_bms_write32(pAVL_Chip->usI2CAddr, c_AVL62X1_DMD_fw_command_args_addr_iaddr, args_addr);
-        r |= avl_bms_write32(pAVL_Chip->usI2CAddr, args_addr + 0, start_addr);
-        r |= avl_bms_write32(pAVL_Chip->usI2CAddr, args_addr + 4, length);
+        r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_DMD_fw_command_args_addr_iaddr, args_addr);
+        r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, args_addr + 0, start_addr);
+        r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, args_addr + 4, length);
         r |= IBase_SendRxOP_AVL62X1(CMD_CALC_CRC, pAVL_Chip);
 
-        r |= avl_bms_read32(pAVL_Chip->usI2CAddr, args_addr + 8, &crc_result);
+        r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, args_addr + 8, &crc_result);
 
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        rv0_idx = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        pAVL_Chip->m_variable_array[rv0_idx] = (crc_result == exp_crc_val);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
+        rv0_idx = patch_read32_AVL62X1(patch_data, &patch_idx);
+        variable_array[rv0_idx] = (crc_result == exp_crc_val);
 
         patch_idx += 4 * (num_rvs - 1); //skip over any extraneous RV's
 
@@ -1011,23 +1006,23 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
       }
       case PATCH_CMD_LD_TO_DEVICE: //2
       {
-        length = patch_read32_AVL62X1(pPatchData, &patch_idx); //in words
-        dest_addr = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        src_data_offset = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        length = patch_read32_AVL62X1(patch_data, &patch_idx); //in words
+        dest_addr = patch_read32_AVL62X1(patch_data, &patch_idx);
+        src_data_offset = patch_read32_AVL62X1(patch_data, &patch_idx);
         src_data_offset += data_section_offset; //add in base offset
         src_data_offset *= 4;                   //convert to byte offset
 #define BURST
 #ifdef BURST
         length *= 4; //Convert to byte length
 
-        pPatchDatatemp = pPatchData + src_data_offset;
+        pPatchDatatemp = patch_data + src_data_offset;
         pPatchDatatemp1 = pPatchDatatemp - 3;
         temp[0] = *(pPatchDatatemp - 1);
         temp[1] = *(pPatchDatatemp - 2);
         temp[2] = *(pPatchDatatemp - 3);
         avl_int_to_3bytes(dest_addr, pPatchDatatemp1);
 
-        r |= avl_bms_write(pAVL_Chip->usI2CAddr, pPatchDatatemp1, (uint32_t)(length + 3));
+        r |= avl_bms_write(pAVL_Chip->chip_pub->i2c_addr, pPatchDatatemp1, (uint32_t)(length + 3));
 
         *pPatchDatatemp1 = temp[2];
         *(pPatchDatatemp1 + 1) = temp[1];
@@ -1037,12 +1032,12 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
         for (uint32_t i = 0; i < length; i++)
         {
           //FIXME: make this a burst write
-          uint32_t tdata = patch_read32_AVL62X1(pPatchData, &src_data_offset);
-          r |= avl_bms_write32(pAVL_Chip->usI2CAddr, dest_addr + i * 4, tdata);
+          uint32_t tdata = patch_read32_AVL62X1(patch_data, &src_data_offset);
+          r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, dest_addr + i * 4, tdata);
         }
 #endif
 
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
         patch_idx += 4 * (num_rvs); //no RV's defined yet
 
         break;
@@ -1050,172 +1045,172 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
 
       case PATCH_CMD_LD_TO_DEVICE_IMM: //7
       {
-        length = patch_read32_AVL62X1(pPatchData, &patch_idx); //in bytes
-        dest_addr = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        data = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        length = patch_read32_AVL62X1(patch_data, &patch_idx); //in bytes
+        dest_addr = patch_read32_AVL62X1(patch_data, &patch_idx);
+        data = patch_read32_AVL62X1(patch_data, &patch_idx);
 
         if (length == 4)
         {
-          r |= avl_bms_write32(pAVL_Chip->usI2CAddr, dest_addr, data);
+          r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, dest_addr, data);
         }
         else if (length == 2)
         {
-          r |= avl_bms_write16(pAVL_Chip->usI2CAddr, dest_addr, data);
+          r |= avl_bms_write16(pAVL_Chip->chip_pub->i2c_addr, dest_addr, data);
         }
         else if (length == 1)
         {
-          r |= avl_bms_write8(pAVL_Chip->usI2CAddr, dest_addr, data);
+          r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, dest_addr, data);
         }
 
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
         patch_idx += 4 * (num_rvs); //no RV's defined yet
         break;
       }
       case PATCH_CMD_LD_TO_DEVICE_PACKED:
       {
-        length = patch_read32_AVL62X1(pPatchData, &patch_idx); //in words
-        src_data_offset = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        length = patch_read32_AVL62X1(patch_data, &patch_idx); //in words
+        src_data_offset = patch_read32_AVL62X1(patch_data, &patch_idx);
 
         src_data_offset += data_section_offset; //add in base offset to make it absolute
         src_data_offset *= 4;                   //convert to byte offset
         length *= 4;                            //Convert to byte length
 
         src_data_offset += 2;                                                               //skip over address offset length. assume it's 2 for now!
-        num_records = (pPatchData[src_data_offset] << 8) + pPatchData[src_data_offset + 1]; //number of records B.E.
+        num_records = (patch_data[src_data_offset] << 8) + patch_data[src_data_offset + 1]; //number of records B.E.
         src_data_offset += 2;
-        dest_addr = (pPatchData[src_data_offset] << 24) + (pPatchData[src_data_offset + 1] << 16) +
-                    (pPatchData[src_data_offset + 2] << 8) + (pPatchData[src_data_offset + 3] << 0); //destination address B.E.
+        dest_addr = (patch_data[src_data_offset] << 24) + (patch_data[src_data_offset + 1] << 16) +
+                    (patch_data[src_data_offset + 2] << 8) + (patch_data[src_data_offset + 3] << 0); //destination address B.E.
         src_data_offset += 4;
 
         //AVL_puchar pRecordData = new uint8_t[(1<<16)+3];
         for (record_cnt = 0; record_cnt < num_records; record_cnt++)
         {
-          addr_offset = (pPatchData[src_data_offset] << 8) + pPatchData[src_data_offset + 1]; //address offset B.E.
+          addr_offset = (patch_data[src_data_offset] << 8) + patch_data[src_data_offset + 1]; //address offset B.E.
           src_data_offset += 2;
-          record_length = (pPatchData[src_data_offset] << 8) + pPatchData[src_data_offset + 1]; //data len B.E.
+          record_length = (patch_data[src_data_offset] << 8) + patch_data[src_data_offset + 1]; //data len B.E.
           src_data_offset += 2;
 
           //temporarily save patch data that will be overwritten
-          temp[0] = pPatchData[src_data_offset - 3];
-          temp[1] = pPatchData[src_data_offset - 2];
-          temp[2] = pPatchData[src_data_offset - 1];
+          temp[0] = patch_data[src_data_offset - 3];
+          temp[1] = patch_data[src_data_offset - 2];
+          temp[2] = patch_data[src_data_offset - 1];
 
           //break address into 3 bytes and put in patch array right in front of data
-          avl_int_to_3bytes(dest_addr + addr_offset, &(pPatchData[src_data_offset - 3]));
-          r |= avl_bms_write(pAVL_Chip->usI2CAddr, &(pPatchData[src_data_offset - 3]), record_length + 3);
+          avl_int_to_3bytes(dest_addr + addr_offset, &(patch_data[src_data_offset - 3]));
+          r |= avl_bms_write(pAVL_Chip->chip_pub->i2c_addr, &(patch_data[src_data_offset - 3]), record_length + 3);
 
           //restore patch data
-          pPatchData[src_data_offset - 3] = temp[0];
-          pPatchData[src_data_offset - 2] = temp[1];
-          pPatchData[src_data_offset - 1] = temp[2];
+          patch_data[src_data_offset - 3] = temp[0];
+          patch_data[src_data_offset - 2] = temp[1];
+          patch_data[src_data_offset - 1] = temp[2];
 
           src_data_offset += record_length;
         }
-        num_rvs2 = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        num_rvs2 = patch_read32_AVL62X1(patch_data, &patch_idx);
         patch_idx += 4 * (num_rvs2); //no RV's defined yet
         break;
       }
       case PATCH_CMD_RD_FROM_DEVICE: //8 8
       {
-        length = patch_read32_AVL62X1(pPatchData, &patch_idx); //in bytes
-        src_addr = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        rv0_idx = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        length = patch_read32_AVL62X1(patch_data, &patch_idx); //in bytes
+        src_addr = patch_read32_AVL62X1(patch_data, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
+        rv0_idx = patch_read32_AVL62X1(patch_data, &patch_idx);
 
         if (length == 4)
         {
-          r |= avl_bms_read32(pAVL_Chip->usI2CAddr, src_addr, &data);
-          pAVL_Chip->m_variable_array[rv0_idx] = data;
+          r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, src_addr, &data);
+          variable_array[rv0_idx] = data;
         }
         else if (length == 2)
         {
-          r |= avl_bms_read16(pAVL_Chip->usI2CAddr, src_addr, &data1);
-          pAVL_Chip->m_variable_array[rv0_idx] = data1;
+          r |= avl_bms_read16(pAVL_Chip->chip_pub->i2c_addr, src_addr, &data1);
+          variable_array[rv0_idx] = data1;
         }
         else if (length == 1)
         {
-          r |= avl_bms_read8(pAVL_Chip->usI2CAddr, src_addr, &data2);
-          pAVL_Chip->m_variable_array[rv0_idx] = data2;
+          r |= avl_bms_read8(pAVL_Chip->chip_pub->i2c_addr, src_addr, &data2);
+          variable_array[rv0_idx] = data2;
         }
         patch_idx += 4 * (num_rvs - 1); //skip over any extraneous RV's
         break;
       }
       case PATCH_CMD_DMA: //3
       {
-        descr_addr = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        num_descr = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        descr_addr = patch_read32_AVL62X1(patch_data, &patch_idx);
+        num_descr = patch_read32_AVL62X1(patch_data, &patch_idx);
 
-        pPatchDatatemp = pPatchData + patch_idx;
+        pPatchDatatemp = patch_data + patch_idx;
         pPatchDatatemp1 = pPatchDatatemp - 3;
         temp[0] = *(pPatchDatatemp - 1);
         temp[1] = *(pPatchDatatemp - 2);
         temp[2] = *(pPatchDatatemp - 3);
         avl_int_to_3bytes(descr_addr, pPatchDatatemp1);
 
-        r |= avl_bms_write(pAVL_Chip->usI2CAddr, pPatchDatatemp1, (uint32_t)(num_descr * 3 * 4));
+        r |= avl_bms_write(pAVL_Chip->chip_pub->i2c_addr, pPatchDatatemp1, (uint32_t)(num_descr * 3 * 4));
         *pPatchDatatemp1 = temp[2];
         *(pPatchDatatemp1 + 1) = temp[1];
         *(pPatchDatatemp1 + 2) = temp[0];
         patch_idx += 12 * num_descr;
 
-        r |= avl_bms_write32(pAVL_Chip->usI2CAddr, c_AVL62X1_DMD_fw_command_args_addr_iaddr, descr_addr);
+        r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_DMD_fw_command_args_addr_iaddr, descr_addr);
         r |= IBase_SendRxOP_AVL62X1(CMD_DMA, pAVL_Chip);
 
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
         patch_idx += 4 * (num_rvs); //no RV's defined yet
         break;
       }
       case PATCH_CMD_EXTRACT: //4
       {
-        type = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        src_addr = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        dest_addr = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        type = patch_read32_AVL62X1(patch_data, &patch_idx);
+        src_addr = patch_read32_AVL62X1(patch_data, &patch_idx);
+        dest_addr = patch_read32_AVL62X1(patch_data, &patch_idx);
 
-        r |= avl_bms_write32(pAVL_Chip->usI2CAddr, c_AVL62X1_DMD_fw_command_args_addr_iaddr, args_addr);
-        r |= avl_bms_write32(pAVL_Chip->usI2CAddr, args_addr + 0, type);
-        r |= avl_bms_write32(pAVL_Chip->usI2CAddr, args_addr + 4, src_addr);
-        r |= avl_bms_write32(pAVL_Chip->usI2CAddr, args_addr + 8, dest_addr);
+        r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_DMD_fw_command_args_addr_iaddr, args_addr);
+        r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, args_addr + 0, type);
+        r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, args_addr + 4, src_addr);
+        r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, args_addr + 8, dest_addr);
 
         r |= IBase_SendRxOP_AVL62X1(CMD_DECOMPRESS, pAVL_Chip);
 
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
         patch_idx += 4 * (num_rvs); //no RV's defined yet
         break;
       }
       case PATCH_CMD_ASSERT_CPU_RESET: //5
       {
-        r |= avl_bms_write32(pAVL_Chip->usI2CAddr, hw_AVL62X1_cpucore_top_srst, 1);
+        r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, hw_AVL62X1_cpucore_top_srst, 1);
 
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
         patch_idx += 4 * (num_rvs); //no RV's defined yet
         break;
       }
       case PATCH_CMD_RELEASE_CPU_RESET: //6
       {
-        r |= avl_bms_write32(pAVL_Chip->usI2CAddr, hw_AVL62X1_cpucore_top_srst, 0);
+        r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, hw_AVL62X1_cpucore_top_srst, 0);
 
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
         patch_idx += 4 * (num_rvs); //no RV's defined yet
         break;
       }
       case PATCH_CMD_DMA_HW: //9
       {
-        descr_addr = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        num_descr = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        descr_addr = patch_read32_AVL62X1(patch_data, &patch_idx);
+        num_descr = patch_read32_AVL62X1(patch_data, &patch_idx);
 
-        temp[0] = *(pPatchData + patch_idx - 1);
-        temp[1] = *(pPatchData + patch_idx - 2);
-        temp[2] = *(pPatchData + patch_idx - 3);
-        avl_int_to_3bytes(descr_addr, pPatchData + patch_idx - 3);
+        temp[0] = *(patch_data + patch_idx - 1);
+        temp[1] = *(patch_data + patch_idx - 2);
+        temp[2] = *(patch_data + patch_idx - 3);
+        avl_int_to_3bytes(descr_addr, patch_data + patch_idx - 3);
 
         if (num_descr > 0)
         {
-          r |= avl_bms_write(pAVL_Chip->usI2CAddr, pPatchData + patch_idx - 3, num_descr * 12 + 3);
+          r |= avl_bms_write(pAVL_Chip->chip_pub->i2c_addr, patch_data + patch_idx - 3, num_descr * 12 + 3);
         }
 
-        *(pPatchData + patch_idx - 1) = temp[0];
-        *(pPatchData + patch_idx - 2) = temp[1];
-        *(pPatchData + patch_idx - 3) = temp[2];
+        *(patch_data + patch_idx - 1) = temp[0];
+        *(patch_data + patch_idx - 2) = temp[1];
+        *(patch_data + patch_idx - 3) = temp[2];
 
         patch_idx += num_descr * 3 * 4;
         dma_tries = 0;
@@ -1227,14 +1222,14 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
             return AVL_EC_GENERAL_FAIL; //FIXME return a value to check instead, and load the bootstrap
           }
           avl_bsp_delay(10); //ms
-          r |= avl_bms_read32(pAVL_Chip->usI2CAddr, hw_AVL62X1_dma_sys_status, &ready);
+          r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, hw_AVL62X1_dma_sys_status, &ready);
           //System::Console::WriteLine("num_dma_tries pre: {0}",dma_tries);
           dma_tries++;
         } while (!(0x01 & ready));
 
         if (0x01 & ready)
         {
-          r |= avl_bms_write32(pAVL_Chip->usI2CAddr, hw_AVL62X1_dma_sys_cmd, descr_addr); //Trigger DMA
+          r |= avl_bms_write32(pAVL_Chip->chip_pub->i2c_addr, hw_AVL62X1_dma_sys_cmd, descr_addr); //Trigger DMA
         }
 
         dma_tries = 0;
@@ -1246,64 +1241,64 @@ uint16_t IBase_DownloadPatch_AVL62X1(struct avl62x1_chip *pAVL_Chip)
             return AVL_EC_GENERAL_FAIL; //FIXME return a value to check instead, and load the bootstrap
           }
           avl_bsp_delay(10); //ms
-          r |= avl_bms_read32(pAVL_Chip->usI2CAddr, hw_AVL62X1_dma_sys_status, &ready);
+          r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, hw_AVL62X1_dma_sys_status, &ready);
           //System::Console::WriteLine("num_dma_tries pre: {0}",dma_tries);
           dma_tries++;
         } while (0x100 & ready);
 
         //Add return value later
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
         patch_idx += 4 * (num_rvs); //no RV's defined yet
         break;
       }
 
       case PATCH_CMD_SET_COND_IMM: //10
       {
-        rv = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        rv0_idx = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        pAVL_Chip->m_variable_array[rv0_idx] = rv;
+        rv = patch_read32_AVL62X1(patch_data, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
+        rv0_idx = patch_read32_AVL62X1(patch_data, &patch_idx);
+        variable_array[rv0_idx] = rv;
         patch_idx += 4 * (num_rvs - 1); //skip over any extraneous RV's
         break;
       }
       case PATCH_CMD_EXIT:
       {
         got_cmd_exit = 1;
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
         patch_idx = 4 * (script_start_idx + script_len); //skip over any extraneous RV's
         break;
       }
       case PATCH_CMD_POLL_WAIT:
       {
-        length = patch_read32_AVL62X1(pPatchData, &patch_idx); //in bytes
-        src_addr = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        match_value = patch_read32_AVL62X1(pPatchData, &patch_idx);
-        max_polls = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        length = patch_read32_AVL62X1(patch_data, &patch_idx); //in bytes
+        src_addr = patch_read32_AVL62X1(patch_data, &patch_idx);
+        match_value = patch_read32_AVL62X1(patch_data, &patch_idx);
+        max_polls = patch_read32_AVL62X1(patch_data, &patch_idx);
         polls = 0;
         do
         {
           if (length == 4)
           {
-            r |= avl_bms_read32(pAVL_Chip->usI2CAddr, src_addr, &data);
+            r |= avl_bms_read32(pAVL_Chip->chip_pub->i2c_addr, src_addr, &data);
             if (data == match_value)
               break;
           }
           else if (length == 2)
           {
-            r = avl_bms_read16(pAVL_Chip->usI2CAddr, src_addr, &data1);
+            r = avl_bms_read16(pAVL_Chip->chip_pub->i2c_addr, src_addr, &data1);
             if (data1 == match_value)
               break;
           }
           else if (length == 1)
           {
-            r = avl_bms_read8(pAVL_Chip->usI2CAddr, src_addr, &data2);
+            r = avl_bms_read8(pAVL_Chip->chip_pub->i2c_addr, src_addr, &data2);
             if (data2 == match_value)
               break;
           }
           avl_bsp_delay(10); //ms
           polls += 1;
         } while (polls < max_polls);
-        num_rvs = patch_read32_AVL62X1(pPatchData, &patch_idx);
+        num_rvs = patch_read32_AVL62X1(patch_data, &patch_idx);
         patch_idx += 4 * (num_rvs); //no RV's defined yet
         break;
       }

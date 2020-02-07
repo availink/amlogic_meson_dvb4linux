@@ -31,7 +31,7 @@
 
 #include "avl_lib.h"
 
-avl_sem_t avl_bsp_i2c_sem;
+avl_sem_t avl_bsp_i2c_sem; //FIXME make 8
 
 struct i2c_adapter *avl_bsp_assoc_i2c_adapter(uint16_t slave_addr,
 					      struct i2c_adapter *i2c_adpt)
@@ -45,11 +45,24 @@ struct i2c_adapter *avl_bsp_assoc_i2c_adapter(uint16_t slave_addr,
 	    NULL,
 	    NULL,
 	    NULL};
+
+	/* use demod ID portion of slave address */
+	uint8_t demod_id = (slave_addr >> 8) & 0x7;
+
 	if (i2c_adpt != NULL)
 	{
-		my_i2c_adapter[slave_addr >> 8] = i2c_adpt;
+		printk(KBUILD_MODNAME ":%s(): assoc I2C for demod_id %d\n",
+		       __FUNCTION__,
+		       demod_id);
+		my_i2c_adapter[demod_id] = i2c_adpt;
 	}
-	return my_i2c_adapter[slave_addr >> 8];
+	if (my_i2c_adapter[demod_id] == NULL)
+	{
+		printk(KBUILD_MODNAME ":%s(): NULL i2c_adapter for demod_id %d\n",
+		       __FUNCTION__,
+		       demod_id);
+	}
+	return my_i2c_adapter[demod_id];
 }
 
 int32_t avl_bsp_initialize(void)

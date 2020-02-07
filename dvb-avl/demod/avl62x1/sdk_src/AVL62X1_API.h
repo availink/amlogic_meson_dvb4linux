@@ -67,7 +67,7 @@ extern "C"
   uint16_t AVL62X1_BlindScan_ConfirmCarrier(const struct avl62x1_blind_scan_params *pBSParams, struct avl62x1_carrier_info *pCarrierInfo, struct avl62x1_chip *pAVL_Chip);
   uint16_t AVL62X1_BlindScan_GetStreamList(struct avl62x1_carrier_info *pCarrier, struct avl62x1_stream_info *pStreams, const uint8_t max_num_streams, struct avl62x1_chip *pAVL_Chip);
 
-  uint16_t AVL62X1_Optimize_Carrier(struct AVL_Tuner *pTuner, struct avl62x1_carrier_info *pCarrierInfo);
+  uint16_t AVL62X1_Optimize_Carrier(struct AVL_Tuner *pTuner, struct avl62x1_carrier_info *pCarrierInfo, struct avl62x1_chip *pAVL_Chip);
   uint16_t AVL62X1_Enable_T2MIRawMode(struct avl62x1_chip *pAVL_Chip);
   uint16_t AVL62X1_Disable_T2MIRawMode(struct avl62x1_chip *pAVL_Chip);
   uint16_t AVL62X1_GetPLSXLFSRValue(uint32_t *pXLFSRValue, struct avl62x1_chip *pAVL_Chip);

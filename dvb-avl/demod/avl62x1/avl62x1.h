@@ -40,7 +40,7 @@
 struct avl62x1_priv
 {
 	struct i2c_adapter *i2c;
-	struct avl62x1_config *config;
+	//struct avl62x1_config *config;
 	struct dvb_frontend frontend;
 	enum fe_delivery_system delivery_system;
 	struct avl62x1_chip *chip;
@@ -49,13 +49,15 @@ struct avl62x1_priv
 
 struct avl62x1_config
 {
-	int i2c_id;	    // i2c adapter (master) id
-	void *i2c_adapter;     // i2c adapter (master)
-	uint8_t demod_address; // demodulator i2c address
-	uint8_t tuner_address; // tuner i2c address
-	uint8_t diseqc_status;
-	/* demod reference clock 0: 16MHz; 1: 27MHz, 2: 30MHz */
-	uint8_t demod_refclk;
+	//int i2c_id;	    // i2c adapter (master) id
+	//void *i2c_adapter;     // i2c adapter (master)
+
+	//structure of user-configurable parameters
+	struct avl62x1_chip_pub *chip_pub;
+
+	//uint8_t demod_address; // demodulator i2c address
+
+
 };
 
 extern struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,

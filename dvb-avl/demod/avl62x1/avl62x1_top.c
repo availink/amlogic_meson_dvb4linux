@@ -43,7 +43,6 @@ static int debug;
 module_param(debug, int, 0644);
 MODULE_PARM_DESC(debug, "\n\t\t Enable debug");
 
-
 struct AVL_Tuner default_avl_tuner = {
     .ucBlindScanMode = 0,
     .vpMorePara = NULL,
@@ -59,7 +58,7 @@ struct AVL_Tuner default_avl_tuner = {
     .fpGetMaxGainVoltage = NULL,
     .fpGetRFFreqStepSize = NULL};
 
-static int init_error_stat(struct avl62x1_priv *priv)
+int init_error_stat(struct avl62x1_priv *priv)
 {
 	uint16_t r = AVL_EC_OK;
 	struct avl62x1_error_stats_config stErrorStatConfig;
@@ -98,12 +97,8 @@ static int avl62x1_init_dvbs(struct dvb_frontend *fe)
 	{
 		dbg_avl("Diseqc Init failed !\n");
 	}
-	else
-	{
-		priv->config->diseqc_status = AVL62X1_DOS_Initialized;
-	}
 
-	r = (int)AVL62X1_SetGPIODir(AVL62X1_GPIO_Pin_LNB_PWR_EN,
+	r |= (int)AVL62X1_SetGPIODir(AVL62X1_GPIO_Pin_LNB_PWR_EN,
 				    AVL62X1_GPIO_DIR_OUTPUT,
 				    priv->chip);
 	r |= (int)AVL62X1_SetGPIODir(AVL62X1_GPIO_Pin_LNB_PWR_SEL,
@@ -118,7 +113,11 @@ static int avl62x1_i2c_gate_ctrl(struct dvb_frontend *fe, int enable)
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	uint16_t ret = AVL_EC_OK;
 
-	dbg_avl("%s: %d\n", __func__, enable);
+	dbg_avl("%d\n", enable);
+
+	if(priv->chip == NULL) {
+		dev_err(&priv->i2c->dev, KBUILD_MODNAME ": NULL fe->demodulator_priv->chip");
+	}
 
 	if (enable)
 	{
@@ -280,7 +279,7 @@ uint16_t diseqc_send_cmd(struct avl62x1_priv *priv,
 	return (int)(r);
 }
 
-static int avl62x1_diseqc(struct dvb_frontend *fe,
+static int avl62x1_send_master_cmd(struct dvb_frontend *fe,
 			  struct dvb_diseqc_master_cmd *cmd)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
@@ -288,7 +287,8 @@ static int avl62x1_diseqc(struct dvb_frontend *fe,
 	return diseqc_send_cmd(priv, cmd->msg, cmd->msg_len);
 }
 
-static int avl62x1_burst(struct dvb_frontend *fe, enum fe_sec_mini_cmd burst)
+static int avl62x1_send_burst(struct dvb_frontend *fe,
+enum fe_sec_mini_cmd burst)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	int ret;
@@ -308,13 +308,15 @@ static int avl62x1_set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 	switch (tone)
 	{
 	case SEC_TONE_ON:
-		if (priv->chip->m_Diseqc_OP_Status != AVL62X1_DOS_InContinuous)
+		if (priv->chip->chip_priv->diseqc_op_status !=
+		    AVL62X1_DOS_InContinuous)
 		{
 			r = (int)AVL62X1_IDiseqc_Stop22K(priv->chip);
 		}
 		break;
 	case SEC_TONE_OFF:
-		if (priv->chip->m_Diseqc_OP_Status == AVL62X1_DOS_InContinuous)
+		if (priv->chip->chip_priv->diseqc_op_status ==
+		    AVL62X1_DOS_InContinuous)
 		{
 			r = (int)AVL62X1_IDiseqc_Start22K(priv->chip);
 		}
@@ -534,7 +536,8 @@ static int avl62x1_sleep(struct dvb_frontend *fe)
 static void avl62x1_release(struct dvb_frontend *fe)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
-	release_firmware(priv->fw);
+	kfree(priv->chip->chip_pub);
+	kfree(priv->chip->chip_priv);
 	kfree(priv->chip);
 	kfree(priv);
 }
@@ -582,8 +585,8 @@ static struct dvb_frontend_ops avl62x1_ops = {
     .read_ber = avl62x1_read_ber,
     .set_tone = avl62x1_set_tone,
     .set_voltage = avl62x1_set_voltage,
-    .diseqc_send_master_cmd = avl62x1_diseqc,
-    .diseqc_send_burst = avl62x1_burst,
+    .diseqc_send_master_cmd = avl62x1_send_master_cmd,
+    .diseqc_send_burst = avl62x1_send_burst,
     .get_frontend_algo = avl62x1_fe_algo,
     .tune = avl62x1_tune,
     .set_frontend = avl62x1_set_frontend,
@@ -598,70 +601,63 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 	int fw_status;
 	unsigned int fw_maj, fw_min, fw_build;
 
-	dbg_avl("start demod attach");
+	dbg_avl("enter %s()",__FUNCTION__);
 
 	priv = kzalloc(sizeof(struct avl62x1_priv), GFP_KERNEL);
 	if (priv == NULL)
 		goto err;
 
-	dbg_avl("priv alloc'ed = %llx", (unsigned long long int)priv);
+	priv->chip = kzalloc(sizeof(struct avl62x1_chip), GFP_KERNEL);
+	if (priv->chip == NULL)
+		goto err1;
+
+	priv->chip->chip_priv = kzalloc(sizeof(struct avl62x1_chip_priv),
+					GFP_KERNEL);
+	if (priv->chip->chip_priv == NULL)
+		goto err2;
+
+	priv->chip->chip_pub = kzalloc(sizeof(struct avl62x1_chip_pub),
+				       GFP_KERNEL);
+	if (priv->chip->chip_pub == NULL)
+		goto err3;
 
 	memcpy(&priv->frontend.ops, &avl62x1_ops,
 	       sizeof(struct dvb_frontend_ops));
 
 	priv->frontend.demodulator_priv = priv;
-	priv->config = config;
 	priv->i2c = i2c;
 	priv->delivery_system = -1;
-	priv->chip = kzalloc(sizeof(struct avl62x1_chip), GFP_KERNEL);
-	if (priv->chip == NULL)
-		goto err1;
-	dbg_avl("chip alloc'ed = %llx", (unsigned long long int)priv->chip);
 
-	/* I2C slave address (8b) */
-	priv->chip->usI2CAddr = ((uint16_t)config->demod_address);
-	/* Demod ID (3b) */
-	priv->chip->usI2CAddr |= (((uint16_t)(config->i2c_id & 0x7)) << 8);
-	dbg_avl("usI2CAddr = %x", priv->chip->usI2CAddr);
-	if(config->demod_refclk <= 2) {
-		priv->chip->e_Xtal = config->demod_refclk;
-	} else {
-		dev_err(&priv->i2c->dev,
-			KBUILD_MODNAME ": invalid reference clock (%d). Valid range 0-2",
-			config->demod_refclk);
-	}
-	//priv->chip->pPatchData = ucPatchData;
-	priv->chip->pTuner = &default_avl_tuner;
-	priv->chip->e_TunerPol = AVL62X1_Spectrum_Invert;
-	priv->chip->e_Mode = AVL62X1_MPM_Parallel;
-	priv->chip->e_ClkPol = AVL62X1_MPCP_Rising;
-	priv->chip->e_ClkPhase = AVL62X1_MPCP_Phase_0;
-	priv->chip->e_ClkAdapt = AVL62X1_MPCA_Adaptive;
-	priv->chip->e_Format = AVL62X1_MPF_TS;
-	priv->chip->e_SerPin = AVL62X1_MPSP_DATA0;
-	priv->chip->m_MPEGFrequency_Hz = 130000000;
-	dbg_avl("chip initialized");
+	/* copy (ephemeral?) public part of chip config into alloc'd area */
+	memcpy(priv->chip->chip_pub,
+	       config->chip_pub,
+	       sizeof(struct avl62x1_chip_pub));
+	
+	priv->chip->chip_pub->pTuner = &default_avl_tuner;
 
-	// associate i2c_id/slaveAddr with i2c_adapter
-	avl_bsp_assoc_i2c_adapter(priv->chip->usI2CAddr, i2c);
-	dbg_avl("i2c associated\n");
+	dbg_avl("Demod %d, I2C addr 0x%x",
+		(priv->chip->chip_pub->i2c_addr >> 8) & 0x7,
+		priv->chip->chip_pub->i2c_addr & 0xFF);
+
+	// associate demod ID with i2c_adapter
+	avl_bsp_assoc_i2c_adapter(priv->chip->chip_pub->i2c_addr, i2c);
 
 	/* get chip id */
-	ret = AVL62X1_GetChipID(priv->chip->usI2CAddr, &id);
+	ret = AVL62X1_GetChipID(priv->chip->chip_pub->i2c_addr, &id);
 	if (ret)
 	{
 		dev_err(&priv->i2c->dev,
 			KBUILD_MODNAME ": attach failed reading id");
-		goto err2;
+		goto err4;
 	}
 
-	dbg_avl("chip_id= %d\n", id);
+	dbg_avl("chip_id= 0x%x\n", id);
 
-	if (id != 0x62615ca8)
+	if (id != AVL62X1_CHIP_ID)
 	{
 		dev_err(&priv->i2c->dev,
 			KBUILD_MODNAME ": attach failed, id mismatch");
-		goto err2;
+		goto err4;
 	}
 
 	dev_info(&priv->i2c->dev, KBUILD_MODNAME ": found AVL62x1 id=0x%x", id);
@@ -669,19 +665,19 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 	fw_status = request_firmware(&priv->fw,
 				     "availink/avl62x1.patch",
 				     i2c->dev.parent);
-	if (fw_status < 0)
+	if (fw_status != 0)
 	{
 		dev_err(&priv->i2c->dev,
 			KBUILD_MODNAME ": firmware file not found");
-		goto err2;
+		goto err4;
 	}
 	else
 	{
-		priv->chip->pPatchData = (unsigned char *)(priv->fw->data);
-		fw_maj = priv->chip->pPatchData[24]; //major rev
-		fw_min = priv->chip->pPatchData[25]; //SDK-FW API rev
-		fw_build = (priv->chip->pPatchData[26] << 8) |
-			   priv->chip->pPatchData[27]; //internal rev
+		priv->chip->chip_priv->patch_data = (unsigned char *)(priv->fw->data);
+		fw_maj = priv->chip->chip_priv->patch_data[24]; //major rev
+		fw_min = priv->chip->chip_priv->patch_data[25]; //SDK-FW API rev
+		fw_build = (priv->chip->chip_priv->patch_data[26] << 8) |
+			   priv->chip->chip_priv->patch_data[27]; //internal rev
 		if (fw_min != AVL62X1_API_VER_MINOR) //SDK-FW API rev must match
 		{
 			dev_err(&priv->i2c->dev,
@@ -690,8 +686,7 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 			dev_err(&priv->i2c->dev,
 				KBUILD_MODNAME ": Firmware minor version must be %d",
 				AVL62X1_API_VER_MINOR);
-			release_firmware(priv->fw);
-			goto err2;
+			goto err5;
 		}
 		else
 		{
@@ -701,18 +696,29 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 		}
 	}
 
-	if (!avl62x1_set_dvbmode(&priv->frontend, SYS_DVBS))
+	if (!avl62x1_set_dvbmode(&priv->frontend, SYS_DVBS2))
 	{
+		dev_info(&priv->i2c->dev,
+			 KBUILD_MODNAME ": Firmware booted");
+		release_firmware(priv->fw);
 		return &priv->frontend;
 	}
 
+err5:
+	release_firmware(priv->fw);
+err4:
+	kfree(priv->chip->chip_pub);
+err3:
+	kfree(priv->chip->chip_priv);
 err2:
 	kfree(priv->chip);
 err1:
 	kfree(priv);
 err:
 	return NULL;
-}
+} /* end avl62x1_attach() */
+
+
 EXPORT_SYMBOL_GPL(avl62x1_attach);
 
 MODULE_DESCRIPTION("Availink AVL62X1 DVB-S/S2/S2X demodulator driver");

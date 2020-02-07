@@ -30,9 +30,11 @@ extern "C"
 {
 #endif
 
-#define AVL62X1_API_VER_MAJOR 1  //Public API rev
-#define AVL62X1_API_VER_MINOR 8  //SDK-FW API rev
-#define AVL62X1_API_VER_BUILD 23 //internal rev
+#define AVL62X1_API_VER_MAJOR	1  //Public API rev
+#define AVL62X1_API_VER_MINOR	8  //SDK-FW API rev
+#define AVL62X1_API_VER_BUILD	23 //internal rev
+
+#define AVL62X1_CHIP_ID		0x62615ca8
 
 #define AVL62X1_PL_SCRAM_XSTATE (0x040000)
 #define AVL62X1_PL_SCRAM_AUTO (0x800000)
@@ -65,9 +67,9 @@ extern "C"
 #define SP_CMD_HALT 3
 #define SP_CMD_BLIND_SCAN_CLR 4
 
-  /*
-	* Patch file stuff
-	*/
+/*
+* Patch file stuff
+*/
 #define PATCH_CMD_VALIDATE_CRC 0
 #define PATCH_CMD_PING 1
 #define PATCH_CMD_LD_TO_DEVICE 2
@@ -315,7 +317,7 @@ extern "C"
 
   // The phase of the MPEG clock edge relative to the data transition.
   // Applies to parallel mode only.
-  // 0,1,2,3 will delay the MPEG clock edge by 0,1,2, or 3 m_MPEGFrequency_Hz clock periods
+  // 0,1,2,3 will delay the MPEG clock edge by 0,1,2, or 3 mpeg_clk_freq_hz clock periods
   typedef enum avl62x1_mpeg_clock_phase
   {
     AVL62X1_MPCP_Phase_0 = 0, /// no clock edge delay
@@ -327,8 +329,8 @@ extern "C"
   // Applies to serial mode only.
   typedef enum avl62x1_mpeg_clock_adaptation
   {
-    AVL62X1_MPCA_Fixed = 0,   /// no adaptation - fixed frequency (m_MPEGFrequency_Hz)
-    AVL62X1_MPCA_Adaptive = 1 /// adapt clock frequency to data rate
+    AVL62X1_MPCA_Fixed = 0, //no adaptation. fixed frequency (mpeg_clk_freq_hz)
+    AVL62X1_MPCA_Adaptive = 1 //adapt clock frequency to data rate
   } avl62x1_mpeg_clock_adaptation;
 
   // Define MPEG bit order
@@ -582,36 +584,48 @@ extern "C"
     struct avl_ver_info m_Patch; // The version of the internal patch.
   };
 
-  struct avl62x1_chip
+  struct avl62x1_chip_priv
   {
-    uint16_t usI2CAddr;
-    enum avl62x1_xtal e_Xtal; // Reference clock
-    uint8_t *pPatchData;
+    uint8_t *patch_data;
+    avl_sem_t m_semRx;     // A semaphore used to protect the receiver command channel.
+    avl_sem_t m_semDiseqc; // A semaphore used to protect DiSEqC operation.
+    enum avl62x1_diseqc_status diseqc_op_status;
 
-    struct AVL_Tuner *pTuner;                 // Pointer to AVL_Tuner struct instance
-    enum avl62x1_spectrum_polarity e_TunerPol; // Tuner spectrum polarity (e.g. I/Q input swapped)
-
-    enum avl62x1_mpeg_mode e_Mode;
-    enum avl62x1_mpeg_clock_polarity e_ClkPol;
-    enum avl62x1_mpeg_clock_phase e_ClkPhase;
-    enum avl62x1_mpeg_clock_adaptation e_ClkAdapt;
-    enum avl62x1_mpeg_format e_Format;
-    enum avl62x1_mpeg_serial_pin e_SerPin;
+    uint32_t mpeg_clk_freq_hz; //actual freq after init
+    uint32_t core_clk_freq_hz;
+    uint32_t fec_clk_freq_hz;
 
     struct avl62x1_error_stats error_stats;
 
-    //The desired MPEG clock frequency in units of Hz.
-    //It is updated with the exact value after the demod has initialized
-    uint32_t m_MPEGFrequency_Hz;
-    uint32_t m_CoreFrequency_Hz; // The internal core clock frequency in units of Hz.
-    uint32_t m_FECFrequency_Hz;  // FEC clk in Hz
+    int32_t carrier_freq_offset_hz;
+  };
 
-    enum avl62x1_diseqc_status m_Diseqc_OP_Status;
+  struct avl62x1_chip_pub
+  {
+    uint16_t i2c_addr; /* {3' demod ID, 8' I2C slave addr} */
+    enum avl62x1_xtal ref_clk; // Reference clock
+    struct AVL_Tuner *pTuner; // Pointer to AVL_Tuner struct instance
+    enum avl62x1_spectrum_polarity tuner_pol; // Tuner spectrum polarity (e.g. I/Q input swapped)
 
-    avl_sem_t m_semRx;     // A semaphore used to protect the receiver command channel.
-    avl_sem_t m_semDiseqc; // A semaphore used to protect DiSEqC operation.
+    enum avl62x1_mpeg_mode mpeg_mode;
+    enum avl62x1_mpeg_clock_polarity mpeg_clk_pol;
+    enum avl62x1_mpeg_err_polarity mpeg_err_pol;
+    enum avl62x1_mpeg_err_polarity mpeg_valid_pol;
+    enum avl62x1_mpeg_clock_phase mpeg_clk_phase;
+    enum avl62x1_mpeg_clock_adaptation mpeg_clk_adapt;
+    enum avl62x1_mpeg_format mpeg_format;
+    enum avl62x1_mpeg_serial_pin mpeg_serial_pin;
+    //requested MPEG clk freq for non-adaptive mode
+    //avl62x1_chip_priv.mpeg_clk_freq_hz contains actual freq after init
+    uint32_t req_mpeg_clk_freq_hz;
 
-    uint32_t m_variable_array[PATCH_VAR_ARRAY_SIZE];
+  };
+
+  struct avl62x1_chip
+  {
+    struct avl62x1_chip_priv  *chip_priv;
+    struct avl62x1_chip_pub   *chip_pub;
+
   };
 
   //structure to configure blind scan for a SINGLE TUNER STEP
@@ -632,9 +646,8 @@ extern "C"
     uint32_t m_NextFreqStep_Hz; //amount to move tuner (relative to its current position) for next BS step
   };
 
-  extern int32_t carrier_freq_offset_hz;
 
-  uint16_t Init_AVL62X1_ChipObject(struct avl62x1_chip *pAVL_ChipObject);
+  uint16_t Init_AVL62X1_ChipObject(struct avl62x1_chip *pAVL_Chip);
 
   uint16_t IBase_CheckChipReady_AVL62X1(struct avl62x1_chip *pAVL_Chip);
   uint16_t IBase_Initialize_AVL62X1(struct avl62x1_chip *pAVL_Chip);

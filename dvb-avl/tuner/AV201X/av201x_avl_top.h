@@ -27,13 +27,15 @@
 //#include "dvb_frontend.h"
 #include "av201x_avl_top_priv.h"
 
-typedef enum av201x_id {
+typedef enum av201x_id
+{
 	ID_AV2011,
 	ID_AV2012,
 	ID_AV2018,
 } av201x_id_t;
 
-struct av201x_avl_config {
+struct av201x_avl_config
+{
 	/* tuner i2c address */
 	uint8_t i2c_address;
 	/* tuner type */
@@ -44,6 +46,8 @@ struct av201x_avl_config {
 };
 
 extern struct dvb_frontend *av201x_avl_attach(struct dvb_frontend *fe,
-		struct av201x_avl_config *cfg, struct i2c_adapter *i2c);
+					      struct av201x_avl_config *cfg,
+					      struct i2c_adapter *i2c,
+					      struct AVL_Tuner **demod_tuner_ptr);
 
 #endif /* AV201X_H */
