@@ -31,38 +31,31 @@
 
 #include "avl_lib.h"
 
-avl_sem_t avl_bsp_i2c_sem; //FIXME make 8
+/* associations between demods and I2C masters */
+struct i2c_adapter *i2c_adapter_list[AVL_MAX_NUM_DEMODS];
 
 struct i2c_adapter *avl_bsp_assoc_i2c_adapter(uint16_t slave_addr,
 					      struct i2c_adapter *i2c_adpt)
 {
-	static struct i2c_adapter *my_i2c_adapter[8] = {
-	    NULL,
-	    NULL,
-	    NULL,
-	    NULL,
-	    NULL,
-	    NULL,
-	    NULL,
-	    NULL};
+	//static struct i2c_adapter *my_i2c_adapter[AVL_MAX_NUM_DEMODS] = {NULL};
 
 	/* use demod ID portion of slave address */
-	uint8_t demod_id = (slave_addr >> 8) & 0x7;
+	uint8_t demod_id = (slave_addr >> 8) & AVL_DEMOD_ID_MASK;
 
-	if (i2c_adpt != NULL)
+	if(i2c_adpt != NULL)
 	{
 		printk(KBUILD_MODNAME ":%s(): assoc I2C for demod_id %d\n",
 		       __FUNCTION__,
 		       demod_id);
-		my_i2c_adapter[demod_id] = i2c_adpt;
+		i2c_adapter_list[demod_id] = i2c_adpt;
 	}
-	if (my_i2c_adapter[demod_id] == NULL)
+	if(i2c_adapter_list[demod_id] == NULL)
 	{
 		printk(KBUILD_MODNAME ":%s(): NULL i2c_adapter for demod_id %d\n",
 		       __FUNCTION__,
 		       demod_id);
 	}
-	return my_i2c_adapter[demod_id];
+	return i2c_adapter_list[demod_id];
 }
 
 int32_t avl_bsp_initialize(void)
@@ -164,7 +157,7 @@ EXPORT_SYMBOL_GPL(avl_bsp_dispose);
 EXPORT_SYMBOL_GPL(avl_bsp_init_semaphore);
 EXPORT_SYMBOL_GPL(avl_bsp_release_semaphore);
 EXPORT_SYMBOL_GPL(avl_bsp_wait_semaphore);
-EXPORT_SYMBOL_GPL(avl_bsp_i2c_sem);
+EXPORT_SYMBOL_GPL(avl_bms_sem);
 
 EXPORT_SYMBOL_GPL(avl_bms_initialize);
 EXPORT_SYMBOL_GPL(avl_bms_read);

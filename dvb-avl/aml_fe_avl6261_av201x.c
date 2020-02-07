@@ -171,7 +171,7 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 
 	//config demod
 	avl62x1_config.chip_pub = &chip_pub;
-	chip_pub.i2c_addr = ((/*demod ID*/ (id & 0xFF)) << 8) |
+	chip_pub.i2c_addr = ((/*demod ID*/ (id & AVL_DEMOD_ID_MASK)) << 8) |
 			    ((uint8_t)demod_i2c_addr);
 	chip_pub.ref_clk = AVL62X1_RefClk_27M;
 	chip_pub.tuner_pol = AVL62X1_Spectrum_Invert;

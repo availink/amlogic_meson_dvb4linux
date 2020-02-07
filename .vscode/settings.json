@@ -70,7 +70,9 @@
     "queue": "cpp",
     "stack": "cpp",
     "cinttypes": "cpp",
-    "cstdbool": "cpp"
+    "cstdbool": "cpp",
+    "avl62x1.h": "c",
+    "avl62x1_dvbsx.h": "c"
   }
 
 }

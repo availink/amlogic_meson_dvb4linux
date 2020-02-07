@@ -28,8 +28,10 @@
 #define AVL_TRUE 1
 #define AVL_CONSTANT_10_TO_THE_9TH 1000000000 //10e9
 
-#define AVL_MAX_II2C_READ_SIZE 64
-#define AVL_MAX_II2C_WRITE_SIZE 64
+#define AVL_MAX_NUM_DEMODS	16
+#define AVL_DEMOD_ID_MASK	0xf
+#define AVL_MAX_II2C_READ_SIZE	64
+#define AVL_MAX_II2C_WRITE_SIZE	64
 
 #define AVL_MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define AVL_MAX(x, y) (((x) < (y)) ? (y) : (x))
@@ -52,7 +54,9 @@ struct avl_uint64
 	uint32_t low_word;
 };
 
-uint16_t avl_bms_initialize(void);
+extern avl_sem_t avl_bms_sem[AVL_MAX_NUM_DEMODS];
+
+uint16_t avl_bms_initialize(uint16_t i2c_addr);
 uint16_t avl_bms_read(uint16_t slave_addr,
 		      uint32_t offset,
 		      uint8_t *buf,

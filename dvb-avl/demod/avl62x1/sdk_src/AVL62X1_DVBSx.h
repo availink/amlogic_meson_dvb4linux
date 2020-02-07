@@ -22,7 +22,7 @@
 #define _AVL62X1_DVBSX_H_
 
 #include "AVL62X1_Reg.h"
-#include "AVL_Tuner.h"
+#include "avl_tuner.h"
 #include "avl_lib.h"
 
 #ifdef AVL_CPLUSPLUS
@@ -604,7 +604,7 @@ extern "C"
   {
     uint16_t i2c_addr; /* {3' demod ID, 8' I2C slave addr} */
     enum avl62x1_xtal ref_clk; // Reference clock
-    struct AVL_Tuner *pTuner; // Pointer to AVL_Tuner struct instance
+    struct avl_tuner *pTuner; // Pointer to avl_tuner struct instance
     enum avl62x1_spectrum_polarity tuner_pol; // Tuner spectrum polarity (e.g. I/Q input swapped)
 
     enum avl62x1_mpeg_mode mpeg_mode;

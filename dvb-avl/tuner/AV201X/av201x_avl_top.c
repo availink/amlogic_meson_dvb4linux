@@ -32,7 +32,7 @@ MODULE_PARM_DESC(debug, "\n\t\t Enable debug information");
 static int debug = 0;
 
 /* write one register */
-static int av201x_wr(struct AVL_Tuner *pTuner, u8 addr, u8 data)
+static int av201x_wr(struct avl_tuner *pTuner, u8 addr, u8 data)
 {
 	uint32_t r = 0;
 	r |= AV201X_I2C_write(pTuner, addr, &data, 1);
@@ -40,7 +40,7 @@ static int av201x_wr(struct AVL_Tuner *pTuner, u8 addr, u8 data)
 }
 
 /* read register, apply masks, write back */
-static int av201x_regmask(struct AVL_Tuner *pTuner,
+static int av201x_regmask(struct avl_tuner *pTuner,
 			  u8 reg, u8 setmask, u8 clrmask)
 {
 	int ret;
@@ -105,19 +105,19 @@ static int av201x_set_params(struct dvb_frontend *fe)
 	       __func__,
 	       c->delivery_system, c->frequency, c->symbol_rate);
 
-	priv->pTuner->uiRFFrequencyHz = c->frequency * 1000;
-	priv->pTuner->uiLPFHz = (c->symbol_rate * 1350) + sym_rate_error_hz;
+	priv->pTuner->rf_freq_hz = c->frequency * 1000;
+	priv->pTuner->lpf_hz = (c->symbol_rate * 1350) + sym_rate_error_hz;
 	if (maxLPF == 0)
-		priv->pTuner->fpGetMaxLPF(priv->pTuner, &maxLPF);
+		priv->pTuner->get_max_lpf(priv->pTuner, &maxLPF);
 	if (minLPF == 0)
-		priv->pTuner->fpGetMinLPF(priv->pTuner, &minLPF);
-	if (priv->pTuner->uiLPFHz > maxLPF)
+		priv->pTuner->get_min_lpf(priv->pTuner, &minLPF);
+	if (priv->pTuner->lpf_hz > maxLPF)
 	{
-		priv->pTuner->uiLPFHz = maxLPF;
+		priv->pTuner->lpf_hz = maxLPF;
 	}
-	else if (priv->pTuner->uiLPFHz < minLPF)
+	else if (priv->pTuner->lpf_hz < minLPF)
 	{
-		priv->pTuner->uiLPFHz = minLPF;
+		priv->pTuner->lpf_hz = minLPF;
 	}
 	ret = AV201X_Lock(priv->pTuner);
 
@@ -185,7 +185,7 @@ static const struct dvb_tuner_ops av201x_tuner_ops = {
 struct dvb_frontend *av201x_avl_attach(struct dvb_frontend *fe,
 				       struct av201x_avl_config *cfg,
 				       struct i2c_adapter *i2c,
-				       struct AVL_Tuner **demod_tuner_ptr)
+				       struct avl_tuner **demod_tuner_ptr)
 {
 	struct av201x_avl_priv *priv = NULL;
 
@@ -199,7 +199,7 @@ struct dvb_frontend *av201x_avl_attach(struct dvb_frontend *fe,
 	priv->cfg = cfg;
 	priv->i2c = i2c;
 
-	priv->pTuner = kzalloc(sizeof(struct AVL_Tuner), GFP_KERNEL);
+	priv->pTuner = kzalloc(sizeof(struct avl_tuner), GFP_KERNEL);
 	if (priv->pTuner == NULL)
 	{
 		kfree(priv);
@@ -209,23 +209,23 @@ struct dvb_frontend *av201x_avl_attach(struct dvb_frontend *fe,
 
 	*demod_tuner_ptr = priv->pTuner;
 
-	priv->pTuner->usTunerI2CAddr = cfg->i2c_address;
-	priv->pTuner->ucTunerLocked = 0;
-	priv->pTuner->uiRFFrequencyHz = 1000 * 1000 * 1000;
-	priv->pTuner->uiLPFHz = 34 * 1000 * 1000;
-	priv->pTuner->ucBlindScanMode = 0;
-	priv->pTuner->vpMorePara = NULL;
-	priv->pTuner->fpInitializeFunc = &AV201X_Initialize;
-	priv->pTuner->fpLockFunc = &AV201X_Lock;
-	priv->pTuner->fpGetLockStatusFunc = &AV201X_GetLockStatus;
-	priv->pTuner->fpGetRFStrength = NULL;
-	priv->pTuner->fpGetMaxLPF = &AV201X_GetMaxLPF;
-	priv->pTuner->fpGetMinLPF = &AV201X_GetMinLPF;
-	priv->pTuner->fpGetLPFStepSize = NULL;
-	priv->pTuner->fpGetAGCSlope = NULL;
-	priv->pTuner->fpGetMinGainVoltage = NULL;
-	priv->pTuner->fpGetMaxGainVoltage = NULL;
-	priv->pTuner->fpGetRFFreqStepSize = NULL;
+	priv->pTuner->i2c_addr = cfg->i2c_address;
+	priv->pTuner->is_locked = 0;
+	priv->pTuner->rf_freq_hz = 1000 * 1000 * 1000;
+	priv->pTuner->lpf_hz = 34 * 1000 * 1000;
+	priv->pTuner->blindscan_mode = 0;
+	priv->pTuner->more_params = NULL;
+	priv->pTuner->initialize = &AV201X_Initialize;
+	priv->pTuner->lock = &AV201X_Lock;
+	priv->pTuner->get_lock_status = &AV201X_GetLockStatus;
+	priv->pTuner->get_rf_strength = NULL;
+	priv->pTuner->get_max_lpf = &AV201X_GetMaxLPF;
+	priv->pTuner->get_min_lpf = &AV201X_GetMinLPF;
+	priv->pTuner->get_lpf_step_size = NULL;
+	priv->pTuner->get_agc_slope = NULL;
+	priv->pTuner->get_min_gain_voltage = NULL;
+	priv->pTuner->get_max_gain_voltage = NULL;
+	priv->pTuner->get_rf_freq_step_size = NULL;
 
 	dev_info(&priv->i2c->dev,
 		 "%s: Airoha Technology AV201x successfully attached\n",

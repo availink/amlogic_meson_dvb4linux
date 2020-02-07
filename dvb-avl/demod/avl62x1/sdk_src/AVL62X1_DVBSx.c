@@ -29,8 +29,7 @@ uint16_t Init_AVL62X1_ChipObject(struct avl62x1_chip *pAVL_Chip)
   r = avl_bsp_init_semaphore(&(pAVL_Chip->chip_priv->m_semRx));
   r |= avl_bsp_init_semaphore(&(pAVL_Chip->chip_priv->m_semDiseqc));
 
-  // there is internal protection to assure it will be initialized only once.
-  r |= avl_bms_initialize();
+  r |= avl_bms_initialize(pAVL_Chip->chip_pub->i2c_addr);
 
   return (r);
 }
@@ -364,18 +363,18 @@ uint16_t IRx_DriveAGC_AVL62X1(enum avl62x1_switch enumOn_Off, struct avl62x1_chi
   if (AVL62X1_ON == enumOn_Off)
   {
     //set RF AGC polarity according to AGC slope sign
-    if (pAVL_Chip->chip_pub->pTuner->fpGetAGCSlope == nullptr)
+    if (pAVL_Chip->chip_pub->pTuner->get_agc_slope == nullptr)
     {
       rfagc_slope = -1;
     }
     else
     {
-      pAVL_Chip->chip_pub->pTuner->fpGetAGCSlope(pAVL_Chip->chip_pub->pTuner, &rfagc_slope);
+      pAVL_Chip->chip_pub->pTuner->get_agc_slope(pAVL_Chip->chip_pub->pTuner, &rfagc_slope);
     }
     r |= avl_bms_write8(pAVL_Chip->chip_pub->i2c_addr, c_AVL62X1_S2X_rf_agc_pol_caddr, (uint8_t)(rfagc_slope < 0));
 
     //set min and max gain values according to AGC saturation points
-    if (pAVL_Chip->chip_pub->pTuner->fpGetMinGainVoltage == nullptr || pAVL_Chip->chip_pub->pTuner->fpGetMaxGainVoltage == nullptr)
+    if (pAVL_Chip->chip_pub->pTuner->get_min_gain_voltage == nullptr || pAVL_Chip->chip_pub->pTuner->get_max_gain_voltage == nullptr)
     {
       //set some reasonable defaults
       if (rfagc_slope > 0)
@@ -391,8 +390,8 @@ uint16_t IRx_DriveAGC_AVL62X1(enum avl62x1_switch enumOn_Off, struct avl62x1_chi
     }
     else
     {
-      pAVL_Chip->chip_pub->pTuner->fpGetMinGainVoltage(pAVL_Chip->chip_pub->pTuner, &min_gain_mV);
-      pAVL_Chip->chip_pub->pTuner->fpGetMaxGainVoltage(pAVL_Chip->chip_pub->pTuner, &max_gain_mV);
+      pAVL_Chip->chip_pub->pTuner->get_min_gain_voltage(pAVL_Chip->chip_pub->pTuner, &min_gain_mV);
+      pAVL_Chip->chip_pub->pTuner->get_max_gain_voltage(pAVL_Chip->chip_pub->pTuner, &max_gain_mV);
       min_gain_mV = AVL_MIN(min_gain_mV, 3300);
       max_gain_mV = AVL_MIN(max_gain_mV, 3300);
     }

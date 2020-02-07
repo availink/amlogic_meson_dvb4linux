@@ -21,7 +21,7 @@
 #ifndef AV201X_AVL_DRV_H
 #define AV201X_AVL_DRV_H
 
-#include "AVL_Tuner.h"
+#include "avl_tuner.h"
 
 #ifdef AVL_CPLUSPLUS
 extern "C"
@@ -141,15 +141,15 @@ extern "C"
 
   extern e_AV201X_Model g_eAV201X_TunerModel;
 
-  uint32_t AV201X_Initialize(struct AVL_Tuner *pTuner);
-  uint32_t AV201X_GetLockStatus(struct AVL_Tuner *pTuner);
-  uint32_t AV201X_Lock(struct AVL_Tuner *pTuner);
-  uint32_t AV201X_GetMaxLPF(struct AVL_Tuner *pTuner, uint32_t *puiMaxLPFHz);
-  uint32_t AV201X_GetMinLPF(struct AVL_Tuner *pTuner, uint32_t *puiMinLPFHz);
+  uint32_t AV201X_Initialize(struct avl_tuner *pTuner);
+  uint32_t AV201X_GetLockStatus(struct avl_tuner *pTuner);
+  uint32_t AV201X_Lock(struct avl_tuner *pTuner);
+  uint32_t AV201X_GetMaxLPF(struct avl_tuner *pTuner, uint32_t *puiMaxLPFHz);
+  uint32_t AV201X_GetMinLPF(struct avl_tuner *pTuner, uint32_t *puiMinLPFHz);
 
   void AV201X_Time_DELAY_MS(UINT32 ms);
-  uint32_t AV201X_I2C_write(struct AVL_Tuner *pTuner, UINT8 reg_start, UINT8 *buff, UINT8 len);
-  uint32_t AV201X_I2C_read(struct AVL_Tuner *pTuner, UINT8 addr, UINT8 *data);
+  uint32_t AV201X_I2C_write(struct avl_tuner *pTuner, UINT8 reg_start, UINT8 *buff, UINT8 len);
+  uint32_t AV201X_I2C_read(struct avl_tuner *pTuner, UINT8 addr, UINT8 *data);
 
 #ifdef AVL_CPLUSPLUS
 }

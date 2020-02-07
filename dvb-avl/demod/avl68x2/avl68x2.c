@@ -31,7 +31,7 @@
 #include "avl68x2.h"
 
 #include "AVL_Demod.h"
-#include "AVL_Tuner.h"
+//#include "avl_tuner.h"
 #include "AVL_Demod_DVBSx.h"
 
 #define dbg_avl(fmt, args...)                         \
@@ -45,21 +45,21 @@ MODULE_PARM_DESC(debug_avl, "\n\t\t Enable AVL demodulator debug information");
 static int debug_avl;
 module_param(debug_avl, int, 0644);
 
-AVL_Tuner default_avl_tuner = {
-  .ucBlindScanMode = 0,
-  .vpMorePara = NULL,
-  .fpInitializeFunc = NULL,
-  .fpLockFunc = NULL,
-  .fpGetLockStatusFunc = NULL,
-  .fpGetRFStrength = NULL,
-  .fpGetMaxLPF = NULL,
-  .fpGetMinLPF = NULL,
-  .fpGetLPFStepSize = NULL,
-  .fpGetAGCSlope = NULL,
-  .fpGetMinGainVoltage = NULL,
-  .fpGetMaxGainVoltage = NULL,
-  .fpGetRFFreqStepSize = NULL
-};
+/*avl_tuner default_avl_tuner = {
+  .blindscan_mode = 0,
+  .more_params = NULL,
+  .initialize = NULL,
+  .lock = NULL,
+  .get_lock_status = NULL,
+  .get_rf_strength = NULL,
+  .get_max_lpf = NULL,
+  .get_min_lpf = NULL,
+  .get_lpf_step_size = NULL,
+  .get_agc_slope = NULL,
+  .get_min_gain_voltage = NULL,
+  .get_max_gain_voltage = NULL,
+  .get_rf_freq_step_size = NULL
+};*/
 
 static int avl68x2_init_dvbs(struct dvb_frontend *fe)
 {

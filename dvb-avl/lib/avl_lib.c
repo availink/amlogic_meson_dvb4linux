@@ -20,18 +20,17 @@
 
 #include "avl_lib.h"
 
-uint16_t avl_bms_initialize(void)
+/* 
+ * semaphore to enforce atomicity of bms transactions
+ * to each demod
+ */
+avl_sem_t avl_bms_sem[AVL_MAX_NUM_DEMODS];
+
+uint16_t avl_bms_initialize(uint16_t i2c_addr)
 {
 	uint16_t r = AVL_EC_OK;
-	static uint8_t sem_inited = 0;
-	if (0 == sem_inited)
-	{
-		r = avl_bsp_init_semaphore(&avl_bsp_i2c_sem);
-		if (r == AVL_EC_OK)
-		{
-			sem_inited = 1;
-		}
-	}
+	uint8_t demod_id = (i2c_addr >> 8) & AVL_DEMOD_ID_MASK;
+	r = avl_bsp_init_semaphore(&(avl_bms_sem[demod_id]));
 	avl_bsp_initialize();
 	return r;
 }
@@ -46,8 +45,9 @@ uint16_t avl_bms_read(uint16_t slave_addr,
 	uint16_t us1 = 0;
 	uint32_t ui2 = 0;
 	uint16_t usSize = 0;
+	uint8_t demod_id = (slave_addr >> 8) & AVL_DEMOD_ID_MASK;
 
-	r = avl_bsp_wait_semaphore(&avl_bsp_i2c_sem);
+	r = avl_bsp_wait_semaphore(&(avl_bms_sem[demod_id]));
 	if (AVL_EC_OK == r)
 	{
 		avl_int_to_3bytes(offset, t_buf);
@@ -74,7 +74,7 @@ uint16_t avl_bms_read(uint16_t slave_addr,
 			}
 		}
 	}
-	r |= avl_bsp_release_semaphore(&avl_bsp_i2c_sem);
+	r |= avl_bsp_release_semaphore(&(avl_bms_sem[demod_id]));
 
 	return (r);
 }
@@ -127,8 +127,9 @@ uint16_t avl_bms_read_direct(uint16_t slave_addr, uint8_t *buf, uint16_t size)
 	uint16_t ui1 = 0;
 	uint32_t ui2 = 0;
 	uint16_t t_size = 0;
+	uint8_t demod_id = (slave_addr >> 8) & AVL_DEMOD_ID_MASK;
 
-	r = avl_bsp_wait_semaphore(&avl_bsp_i2c_sem);
+	r = avl_bsp_wait_semaphore(&(avl_bms_sem[demod_id]));
 	if (AVL_EC_OK == r)
 	{
 		t_size = size;
@@ -145,7 +146,7 @@ uint16_t avl_bms_read_direct(uint16_t slave_addr, uint8_t *buf, uint16_t size)
 			r |= avl_bsp_i2c_read(slave_addr, buf + ui2, &t_size);
 		}
 	}
-	r |= avl_bsp_release_semaphore(&avl_bsp_i2c_sem);
+	r |= avl_bsp_release_semaphore(&(avl_bms_sem[demod_id]));
 
 	return (r);
 }
@@ -157,8 +158,9 @@ uint16_t avl_bms_write_direct(uint16_t slave_addr, uint8_t *buf, uint16_t size)
 	uint32_t ui2 = 0;
 	uint32_t tmp = 0;
 	uint32_t t_size = 0;
+	uint8_t demod_id = (slave_addr >> 8) & AVL_DEMOD_ID_MASK;
 
-	r = avl_bsp_wait_semaphore(&avl_bsp_i2c_sem);
+	r = avl_bsp_wait_semaphore(&(avl_bms_sem[demod_id]));
 	if (AVL_EC_OK == r)
 	{
 		t_size = size;
@@ -174,7 +176,7 @@ uint16_t avl_bms_write_direct(uint16_t slave_addr, uint8_t *buf, uint16_t size)
 		r |= avl_bsp_i2c_write(slave_addr, buf + ui2, &ui1);
 		ui2 += t_size;
 	}
-	r |= avl_bsp_release_semaphore(&avl_bsp_i2c_sem);
+	r |= avl_bsp_release_semaphore(&(avl_bms_sem[demod_id]));
 
 	return (r);
 }
@@ -188,6 +190,7 @@ uint16_t avl_bms_write(uint16_t slave_addr, uint8_t *buf, uint32_t size)
 	uint16_t tmp = 0;
 	uint32_t t_size = 0;
 	uint32_t t_addr = 0;
+	uint8_t demod_id = (slave_addr >> 8) & AVL_DEMOD_ID_MASK;
 
 	if (size < 3)
 	{
@@ -198,7 +201,7 @@ uint16_t avl_bms_write(uint16_t slave_addr, uint8_t *buf, uint32_t size)
 
 		/* size includes 3 bytes for address */
 		size -= 3;
-		r = avl_bsp_wait_semaphore(&avl_bsp_i2c_sem);
+		r = avl_bsp_wait_semaphore(&(avl_bms_sem[demod_id]));
 		if (AVL_EC_OK == r)
 		{
 			/* address portion */
@@ -245,7 +248,7 @@ uint16_t avl_bms_write(uint16_t slave_addr, uint8_t *buf, uint32_t size)
 			t_addr += t_size;
 			ui2 += t_size;
 		}
-		r |= avl_bsp_release_semaphore(&avl_bsp_i2c_sem);
+		r |= avl_bsp_release_semaphore(&(avl_bms_sem[demod_id]));
 	}
 	return (r);
 }

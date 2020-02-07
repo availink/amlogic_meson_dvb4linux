@@ -48,6 +48,6 @@ struct av201x_avl_config
 extern struct dvb_frontend *av201x_avl_attach(struct dvb_frontend *fe,
 					      struct av201x_avl_config *cfg,
 					      struct i2c_adapter *i2c,
-					      struct AVL_Tuner **demod_tuner_ptr);
+					      struct avl_tuner **demod_tuner_ptr);
 
 #endif /* AV201X_H */

@@ -1163,8 +1163,8 @@ uint16_t AVL62X1_BlindScan_ConfirmCarrier(const struct avl62x1_blind_scan_params
 }
 
 //When calling this function in blindscan mode, either set
-//  pTuner->ucBlindScanMode = 1, pCarrierInfo = nullptr, or pCarrierInfo->m_symbol_rate_Hz = 0xFFFFFFFF
-uint16_t AVL62X1_Optimize_Carrier(struct AVL_Tuner *pTuner, struct avl62x1_carrier_info *pCarrierInfo, struct avl62x1_chip *pAVL_Chip)
+//  pTuner->blindscan_mode = 1, pCarrierInfo = nullptr, or pCarrierInfo->m_symbol_rate_Hz = 0xFFFFFFFF
+uint16_t AVL62X1_Optimize_Carrier(struct avl_tuner *pTuner, struct avl62x1_carrier_info *pCarrierInfo, struct avl62x1_chip *pAVL_Chip)
 {
   uint16_t r = AVL_EC_OK;
   const uint32_t sym_rate_error_Hz = 5 * 1000 * 1000;
@@ -1175,51 +1175,51 @@ uint16_t AVL62X1_Optimize_Carrier(struct AVL_Tuner *pTuner, struct avl62x1_carri
   uint32_t tuner_step_size_Hz = 0;
   uint32_t LPF_step_size_Hz = 0;
 
-  if (pTuner->fpGetRFFreqStepSize == nullptr)
+  if (pTuner->get_rf_freq_step_size == nullptr)
   {
     tuner_step_size_Hz = 250000;
   }
   else
   {
-    pTuner->fpGetRFFreqStepSize(pTuner, &tuner_step_size_Hz);
+    pTuner->get_rf_freq_step_size(pTuner, &tuner_step_size_Hz);
   }
-  if (pTuner->fpGetMaxLPF == nullptr)
+  if (pTuner->get_max_lpf == nullptr)
   {
     maxLPF_Hz = 34000000;
   }
   else
   {
-    pTuner->fpGetMaxLPF(pTuner, &maxLPF_Hz);
+    pTuner->get_max_lpf(pTuner, &maxLPF_Hz);
   }
-  if (pTuner->fpGetMinLPF == nullptr)
+  if (pTuner->get_min_lpf == nullptr)
   {
     minLPF_Hz = 10000000;
   }
   else
   {
-    pTuner->fpGetMinLPF(pTuner, &minLPF_Hz);
+    pTuner->get_min_lpf(pTuner, &minLPF_Hz);
   }
-  if (pTuner->fpGetLPFStepSize == nullptr)
+  if (pTuner->get_lpf_step_size == nullptr)
   {
     LPF_step_size_Hz = 1000000;
   }
   else
   {
-    pTuner->fpGetLPFStepSize(pTuner, &LPF_step_size_Hz);
+    pTuner->get_lpf_step_size(pTuner, &LPF_step_size_Hz);
   }
 
   if (pCarrierInfo == nullptr)
   {
-    pTuner->ucBlindScanMode = 1;
+    pTuner->blindscan_mode = 1;
   }
   else if (pCarrierInfo->m_symbol_rate_Hz == 0xFFFFFFFF)
   {
-    pTuner->ucBlindScanMode = 1;
+    pTuner->blindscan_mode = 1;
   }
-  if (pTuner->ucBlindScanMode == 1)
+  if (pTuner->blindscan_mode == 1)
   {
     //Set tuner LPF wide open
-    pTuner->uiLPFHz = maxLPF_Hz;
+    pTuner->lpf_hz = maxLPF_Hz;
   }
   else
   {
@@ -1235,14 +1235,14 @@ uint16_t AVL62X1_Optimize_Carrier(struct AVL_Tuner *pTuner, struct avl62x1_carri
       IF_Hz = (carrier_BW_Hz / 2);
       pCarrierInfo->m_rf_freq_kHz -= IF_Hz / 1000;
       pCarrierInfo->m_carrier_freq_offset_Hz = IF_Hz;
-      pTuner->uiRFFrequencyHz = pCarrierInfo->m_rf_freq_kHz * 1000;
+      pTuner->rf_freq_hz = pCarrierInfo->m_rf_freq_kHz * 1000;
       carrier_BW_Hz *= 2;
     }
 
     pAVL_Chip->chip_priv->carrier_freq_offset_hz = pCarrierInfo->m_carrier_freq_offset_Hz;
     //Set tuner LPF so that carrier edge is an octave from the LPF 3dB point
-    pTuner->uiLPFHz = avl_min_32(carrier_BW_Hz + LPF_step_size_Hz / 2, maxLPF_Hz);
-    pTuner->uiLPFHz = avl_max_32(pTuner->uiLPFHz, minLPF_Hz);
+    pTuner->lpf_hz = avl_min_32(carrier_BW_Hz + LPF_step_size_Hz / 2, maxLPF_Hz);
+    pTuner->lpf_hz = avl_max_32(pTuner->lpf_hz, minLPF_Hz);
   }
 
   return (r);

@@ -30,7 +30,7 @@
 
 #include "avl62x1.h"
 #include "AVL62X1_API.h"
-#include "AVL_Tuner.h"
+#include "avl_tuner.h"
 
 #define dbg_avl(fmt, args...)                                           \
 	do                                                              \
@@ -43,20 +43,20 @@ static int debug;
 module_param(debug, int, 0644);
 MODULE_PARM_DESC(debug, "\n\t\t Enable debug");
 
-struct AVL_Tuner default_avl_tuner = {
-    .ucBlindScanMode = 0,
-    .vpMorePara = NULL,
-    .fpInitializeFunc = NULL,
-    .fpLockFunc = NULL,
-    .fpGetLockStatusFunc = NULL,
-    .fpGetRFStrength = NULL,
-    .fpGetMaxLPF = NULL,
-    .fpGetMinLPF = NULL,
-    .fpGetLPFStepSize = NULL,
-    .fpGetAGCSlope = NULL,
-    .fpGetMinGainVoltage = NULL,
-    .fpGetMaxGainVoltage = NULL,
-    .fpGetRFFreqStepSize = NULL};
+struct avl_tuner default_avl_tuner = {
+    .blindscan_mode = 0,
+    .more_params = NULL,
+    .initialize = NULL,
+    .lock = NULL,
+    .get_lock_status = NULL,
+    .get_rf_strength = NULL,
+    .get_max_lpf = NULL,
+    .get_min_lpf = NULL,
+    .get_lpf_step_size = NULL,
+    .get_agc_slope = NULL,
+    .get_min_gain_voltage = NULL,
+    .get_max_gain_voltage = NULL,
+    .get_rf_freq_step_size = NULL};
 
 int init_error_stat(struct avl62x1_priv *priv)
 {
@@ -642,6 +642,14 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 	// associate demod ID with i2c_adapter
 	avl_bsp_assoc_i2c_adapter(priv->chip->chip_pub->i2c_addr, i2c);
 
+	//set up semaphores
+	ret = Init_AVL62X1_ChipObject(priv->chip);
+	if(ret) {
+		dev_err(&priv->i2c->dev,
+			KBUILD_MODNAME ": chip object init failed");
+		goto err4;
+	}
+
 	/* get chip id */
 	ret = AVL62X1_GetChipID(priv->chip->chip_pub->i2c_addr, &id);
 	if (ret)
@@ -651,7 +659,7 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 		goto err4;
 	}
 
-	dbg_avl("chip_id= 0x%x\n", id);
+	dbg_avl("chip_id 0x%x\n", id);
 
 	if (id != AVL62X1_CHIP_ID)
 	{

@@ -36,8 +36,6 @@ typedef uint8_t avl_sem_t;
 /********************************/
 
 
-extern avl_sem_t avl_bsp_i2c_sem;
-
 struct i2c_adapter *avl_bsp_assoc_i2c_adapter(uint16_t slave_addr,
 					      struct i2c_adapter *i2c_adpt);
 int32_t avl_bsp_initialize(void);

@@ -23,12 +23,12 @@
 #define AV201X_AVL_TOP_PRIV_H
 
 #include "av201x_avl_drv.h"
-#include "AVL_Tuner.h"
+#include "avl_tuner.h"
 
 struct av201x_avl_priv {
 	struct av201x_avl_config *cfg;
 	struct i2c_adapter *i2c;
-  struct AVL_Tuner * pTuner;
+  struct avl_tuner * pTuner;
 };
 
 enum av201x_regs_addr {
