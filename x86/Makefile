@@ -29,9 +29,10 @@ KERNEL?=/home/ubuntu/adam/kernels/linux-4.19
 all: dvb-avl
 	make -C $(KERNEL) M=$(PWD) TOP=no modules
 
+.PHONY: dvb-avl
 dvb-avl:
 ifeq ($(TOP),top)
-	cp -r $(PWD)/../dvb-avl .
+	cp -ar $(PWD)/../dvb-avl .
 endif
 
 clean:
