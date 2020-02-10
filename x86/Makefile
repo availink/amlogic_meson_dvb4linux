@@ -1,3 +1,5 @@
+TOP?=top
+
 obj-m := avl68x2.o
 
 avl68x2-y := \
@@ -19,12 +21,24 @@ ccflags-y := -I$(src) -I$(src)/dvb-avl/lib \
 -I$(src)/dvb-avl/demod/avl68x2 \
 -I$(src)/dvb-avl/demod/avl68x2/sdk_src
 
-#KERNEL:=/lib/modules/$(shell uname -r)/build
-#KERNEL:=/home/ubuntu/adam/kernels/linux-5.5
-KERNEL:=/home/ubuntu/adam/kernels/linux-4.19
+#KERNEL?=/lib/modules/$(shell uname -r)/build
+#KERNEL?=/home/ubuntu/adam/kernels/linux-5.5
+KERNEL?=/home/ubuntu/adam/kernels/linux-4.19
 
-all:
-	make -C $(KERNEL) M=$(PWD) modules
+
+all: dvb-avl
+	make -C $(KERNEL) M=$(PWD) TOP=no modules
+
+dvb-avl:
+ifeq ($(TOP),top)
+	cp -r $(PWD)/../dvb-avl .
+endif
 
 clean:
-	make -C $(KERNEL) M=$(PWD) clean
+	rm -rf dvb-avl
+	rm -f *.ko
+	rm -f *.mod.*
+	rm -f *.o
+	rm -f modules.order
+	rm -f Module.symvers
+
