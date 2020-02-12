@@ -1,5 +1,5 @@
 ## amlogic_meson_dvb4linux
-This repository is our prototype for distributing Linux DVB drivers for our demodulator products.  Here, we have integrated our AVL6261 S/S2/S2X demodulator driver and our version of the Airoha AV201x tuner driver into a DVB frontend device for the Amlogic Meson SoC for use within the CoreELEC embedded Linux distro.
+This repository is our prototype for distributing Linux DVB drivers for our demodulator products.  Here, we have integrated our AVL6261 S/S2/S2X demodulator driver and our version of the Airoha AV201x tuner driver into a DVB frontend device for the Amlogic Meson SoC.  We package the drivers into the CoreELEC distro as a proof of concept.
 
 ### Directory Structure
 ```
