@@ -773,8 +773,8 @@ uint16_t avl62x1_get_signal_info(struct avl62x1_carrier_info *carrier_info,
 				 struct avl62x1_chip *chip)
 {
 	uint16_t r = AVL_EC_OK;
-	uint8_t ucTemp = 0;
-	uint32_t uiTemp = 0;
+	uint8_t tmp8 = 0;
+	uint32_t tmp32 = 0;
 
 	/* If blind carrier freq search was performed,
 	 * this is the carrier freq as determined by the
@@ -783,8 +783,8 @@ uint16_t avl62x1_get_signal_info(struct avl62x1_carrier_info *carrier_info,
 	 */
 	r |= avl_bms_read32(chip->chip_pub->i2c_addr,
 			    s_AVL62X1_S2X_carrier_freq_Hz_iaddr,
-			    &uiTemp);
-	carrier_info->carrier_freq_offset_hz = (int32_t)uiTemp;
+			    &tmp32);
+	carrier_info->carrier_freq_offset_hz = (int32_t)tmp32;
 
 	/* Difference, in Hertz, between nominal carrier
 	 * freq and current freq as indicated by the
@@ -792,20 +792,27 @@ uint16_t avl62x1_get_signal_info(struct avl62x1_carrier_info *carrier_info,
 	 */
 	r |= avl_bms_read32(chip->chip_pub->i2c_addr,
 			    s_AVL62X1_S2X_carrier_freq_err_Hz_iaddr,
-			    &uiTemp);
-	carrier_info->carrier_freq_offset_hz += (int32_t)uiTemp;
+			    &tmp32);
+	carrier_info->carrier_freq_offset_hz += (int32_t)tmp32;
 	carrier_info->carrier_freq_offset_hz -=
 	    chip->chip_priv->carrier_freq_offset_hz;
 
 	r |= avl_bms_read32(chip->chip_pub->i2c_addr,
 			    s_AVL62X1_S2X_symbol_rate_Hz_iaddr,
-			    &uiTemp);
-	carrier_info->symbol_rate_hz = uiTemp;
+			    &tmp32);
+	carrier_info->symbol_rate_hz = tmp32;
 
 	r |= avl_bms_read8(chip->chip_pub->i2c_addr,
 			   s_AVL62X1_S2X_signal_type_caddr,
-			   &ucTemp);
-	carrier_info->signal_type = (avl62x1_standard)(ucTemp);
+			   &tmp8);
+	carrier_info->signal_type = (avl62x1_standard)(tmp8);
+
+	r |= avl_bms_read8(chip->chip_pub->i2c_addr,
+			   s_AVL62X1_S2X_carrier_spectrum_invert_status_caddr,
+			   &tmp8);
+	carrier_info->spectrum_invert = (tmp8 == 1)
+					    ? avl62x1_specpol_inverted
+					    : avl62x1_specpol_normal;
 
 	if (carrier_info->signal_type == avl62x1_dvbs)
 	{
@@ -813,9 +820,9 @@ uint16_t avl62x1_get_signal_info(struct avl62x1_carrier_info *carrier_info,
 
 		r |= avl_bms_read8(chip->chip_pub->i2c_addr,
 				   s_AVL62X1_S2X_dvbs_code_rate_caddr,
-				   &ucTemp);
+				   &tmp8);
 		carrier_info->code_rate.dvbs_code_rate =
-		    (avl62x1_dvbs_code_rate)(ucTemp);
+		    (avl62x1_dvbs_code_rate)(tmp8);
 
 		carrier_info->roll_off = avl62x1_rolloff_35;
 	}
@@ -823,29 +830,29 @@ uint16_t avl62x1_get_signal_info(struct avl62x1_carrier_info *carrier_info,
 	{
 		r |= avl_bms_read8(chip->chip_pub->i2c_addr,
 				   s_AVL62X1_S2X_s2_pilot_on_caddr,
-				   &ucTemp);
-		carrier_info->pilot = (avl62x1_pilot)(ucTemp);
+				   &tmp8);
+		carrier_info->pilot = (avl62x1_pilot)(tmp8);
 
 		r |= avl_bms_read8(chip->chip_pub->i2c_addr,
 				   s_AVL62X1_S2X_s2_fec_len_caddr,
-				   &ucTemp);
-		carrier_info->fec_length = (avl62x1_fec_length)(ucTemp);
+				   &tmp8);
+		carrier_info->fec_length = (avl62x1_fec_length)(tmp8);
 
 		r |= avl_bms_read8(chip->chip_pub->i2c_addr,
 				   s_AVL62X1_S2X_s2_modulation_caddr,
-				   &ucTemp);
-		carrier_info->modulation = (avl62x1_modulation_mode)(ucTemp);
+				   &tmp8);
+		carrier_info->modulation = (avl62x1_modulation_mode)(tmp8);
 
 		r |= avl_bms_read8(chip->chip_pub->i2c_addr,
 				   s_AVL62X1_S2X_s2_code_rate_caddr,
-				   &ucTemp);
+				   &tmp8);
 		carrier_info->code_rate.dvbs2_code_rate =
-		    (avl62x1_dvbs2_code_rate)(ucTemp);
+		    (avl62x1_dvbs2_code_rate)(tmp8);
 
 		r |= avl_bms_read8(chip->chip_pub->i2c_addr,
 				   s_AVL62X1_S2X_ccm1_acm0_caddr,
-				   &ucTemp);
-		if (ucTemp == 0)
+				   &tmp8);
+		if (tmp8 == 0)
 		{
 			carrier_info->dvbs2_ccm_acm = avl62x1_dvbs2_acm;
 			carrier_info->pls_acm = 0;
@@ -855,20 +862,20 @@ uint16_t avl62x1_get_signal_info(struct avl62x1_carrier_info *carrier_info,
 			carrier_info->dvbs2_ccm_acm = avl62x1_dvbs2_ccm;
 			r |= avl_bms_read8(chip->chip_pub->i2c_addr,
 					   s_AVL62X1_S2X_ccm_pls_mode_caddr,
-					   &ucTemp);
-			carrier_info->pls_acm = ucTemp;
+					   &tmp8);
+			carrier_info->pls_acm = tmp8;
 		}
 
 		r |= avl_bms_read8(chip->chip_pub->i2c_addr,
 				   s_AVL62X1_S2X_alpha_caddr,
-				   &ucTemp);
-		carrier_info->roll_off = (avl62x1_rolloff)(ucTemp);
+				   &tmp8);
+		carrier_info->roll_off = (avl62x1_rolloff)(tmp8);
 
 		//r |= AVL_AVL62X1_GetStreamNumber(&carrier_info->num_streams, chip);
 		r |= avl_bms_read8(chip->chip_pub->i2c_addr,
 				   s_AVL62X1_SP_S2X_sp_SIS_MIS_caddr,
-				   &ucTemp);
-		carrier_info->sis_mis = (avl62x1_sis_mis)(ucTemp);
+				   &tmp8);
+		carrier_info->sis_mis = (avl62x1_sis_mis)(tmp8);
 	}
 	return (r);
 }
@@ -877,22 +884,22 @@ uint16_t avl62x1_get_signal_strength(uint16_t *signal_strength,
 				     struct avl62x1_chip *chip)
 {
 	uint16_t r = AVL_EC_OK;
-	uint16_t uiTemp = 0;
+	uint16_t tmp16 = 0;
 
 	r = avl_bms_read16(chip->chip_pub->i2c_addr,
 			   s_AVL62X1_DMD_rfagc_gain_saddr,
-			   &uiTemp);
-	if (uiTemp <= 25000)
+			   &tmp16);
+	if (tmp16 <= 25000)
 	{
 		*signal_strength = 100;
 	}
-	else if (uiTemp >= 55000)
+	else if (tmp16 >= 55000)
 	{
 		*signal_strength = 10;
 	}
 	else
 	{
-		*signal_strength = (55000 - uiTemp) * 90 / 30000 + 10;
+		*signal_strength = (55000 - tmp16) * 90 / 30000 + 10;
 	}
 
 	return (r);
@@ -2153,4 +2160,19 @@ uint16_t avl62x1_get_stream_type(enum avl62x1_dvb_stream_type *stream_type,
 	*stream_type = (avl62x1_dvb_stream_type)tmp8;
 
 	return (r);
+}
+
+uint16_t avl62x1_get_stream_info(
+    struct avl62x1_stream_info *stream_info,
+    struct avl62x1_chip *chip)
+{
+	uint16_t r = AVL_EC_OK;
+	r |= avl62x1_get_stream_type(&stream_info->stream_type,chip);
+
+	r |= avl_bms_read8(chip->chip_pub->i2c_addr,
+			   s_AVL62X1_SP_S2X_SelectedStreamID_caddr,
+			   &stream_info->isi);
+	
+	//TODO: add T2MI info when appropriate
+	return r;
 }

@@ -17,14 +17,14 @@
 #include <linux/types.h>
 
 #include "avl62x1.h"
-#include "AVL62X1_API.h"
+#include "avl62x1_api.h"
 #include "avl_tuner.h"
 
 #define dbg_avl(fmt, args...)                                           \
 	do                                                              \
 	{                                                               \
 		if (debug)                                              \
-			printk("AVL: %s: " fmt "\n", __func__, ##args); \
+			printk("%s(): " fmt "\n", __func__, ##args); \
 	} while (0);
 
 static int debug;
@@ -340,84 +340,222 @@ static int diseqc_set_voltage(struct dvb_frontend *fe,
 	return ret;
 }
 
-static int read_status(struct dvb_frontend *fe, enum fe_status *status)
+static int get_frontend(struct dvb_frontend *fe,
+			struct dtv_frontend_properties *props)
 {
-	struct avl62x1_priv *priv = fe->demodulator_priv;
-	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	int ret = 0;
-	avl62x1_lock_status lock = 0;
-	int16_t snr_x100db = 0;
-	int16_t sig_strength = 0;
+	struct avl62x1_priv *priv = fe->demodulator_priv;
+	avl62x1_lock_status lock;
+	struct avl62x1_carrier_info carrier_info;
+	struct avl62x1_stream_info stream_info;
+	int16_t snr_db_x100;
+	uint16_t sig_strength;
 
-	switch (priv->delivery_system)
+	//dbg_avl("ENTER");
+
+	ret = avl62x1_get_lock_status(&lock,
+				      priv->chip);
+
+	if ((lock == avl62x1_status_locked) &&
+	    (ret == AVL_EC_OK))
 	{
-	case SYS_DVBS:
-	case SYS_DVBS2:
-		ret = avl62x1_get_lock_status(&lock, priv->chip);
-		//dbg_avl("lock: %d", lock);
-		if (lock == avl62x1_status_locked)
-		{
-			ret |= avl62x1_get_snr(&snr_x100db, priv->chip);
-			dbg_avl("snr_x100db: %d", snr_x100db);
-			if (ret || snr_x100db > 10000)
-				snr_x100db = 0;
+
+		ret |= avl62x1_get_signal_info(&carrier_info,
+					priv->chip);
+		
+		
+		ret |= avl62x1_get_stream_info(&stream_info,
+					priv->chip);
+
+		props->frequency = carrier_info.rf_freq_khz * 1000 +
+				carrier_info.carrier_freq_offset_hz;
+		
+		switch(carrier_info.modulation) {
+		case avl62x1_qpsk:
+			props->modulation = QPSK;
+			break;
+		case avl62x1_8psk:
+			props->modulation = PSK_8;
+			break;
+		case avl62x1_16apsk:
+			props->modulation = APSK_16;
+			break;
+		default: //DVBv5 has no >=APSK_64
+			props->modulation = APSK_32;
+			break;
 		}
-		else
-		{
-			*status = 0;
-			return ret;
+
+		props->inversion =
+		(carrier_info.spectrum_invert == avl62x1_specpol_inverted)
+			? INVERSION_ON
+			: INVERSION_OFF;
+
+		props->symbol_rate = carrier_info.symbol_rate_hz;
+
+		if(carrier_info.pilot == avl62x1_pilot_on) {
+			props->pilot = PILOT_ON;
+		} else {
+			props->pilot = PILOT_OFF;
 		}
-		break;
-	default:
-		*status = 0;
-		return 1;
-	}
 
-	if (ret)
-	{
-		*status = 0;
-		return ret;
-	}
-	*status = FE_HAS_SIGNAL;
+		switch(carrier_info.roll_off) {
+		case avl62x1_rolloff_35:
+			props->rolloff = ROLLOFF_35;
+			break;
+		case avl62x1_rolloff_25:
+			props->rolloff = ROLLOFF_25;
+			break;
+		case avl62x1_rolloff_20:
+			props->rolloff = ROLLOFF_20;
+			break;
+		default:
+			props->rolloff = ROLLOFF_20;
+		}
 
-	//dbg_avl("%s", read_stdout(priv->chip));
+		if(carrier_info.signal_type == avl62x1_dvbs2) {
+			props->delivery_system = SYS_DVBS2;
+			switch(carrier_info.code_rate.dvbs2_code_rate) {
+			case avl62x1_dvbs2_cr_2_5:
+				props->fec_inner = FEC_2_5;
+				break;
+			case avl62x1_dvbs2_cr_1_2:
+				props->fec_inner = FEC_1_2;
+				break;
+			case avl62x1_dvbs2_cr_3_5:
+				props->fec_inner = FEC_3_5;
+				break;
+			case avl62x1_dvbs2_cr_2_3:
+				props->fec_inner = FEC_2_3;
+				break;
+			case avl62x1_dvbs2_cr_3_4:
+				props->fec_inner = FEC_3_4;
+				break;
+			case avl62x1_dvbs2_cr_4_5:
+				props->fec_inner = FEC_4_5;
+				break;
+			case avl62x1_dvbs2_cr_5_6:
+				props->fec_inner = FEC_5_6;
+				break;
+			case avl62x1_dvbs2_cr_8_9:
+				props->fec_inner = FEC_8_9;
+				break;
+			case avl62x1_dvbs2_cr_9_10:
+				props->fec_inner = FEC_9_10;
+				break;
+			default: //DVBv5 missing many rates (e.g. all S2/X)
+				props->fec_inner = FEC_AUTO;
+			}
+		} else {
+			props->delivery_system = SYS_DVBS;
+			switch(carrier_info.code_rate.dvbs_code_rate) {
+			case avl62x1_dvbs_cr_1_2:
+				props->fec_inner = FEC_1_2;
+				break;
+			case avl62x1_dvbs_cr_2_3:
+				props->fec_inner = FEC_2_3;
+				break;
+			case avl62x1_dvbs_cr_3_4:
+				props->fec_inner = FEC_3_4;
+				break;
+			case avl62x1_dvbs_cr_5_6:
+				props->fec_inner = FEC_5_6;
+				break;
+			default:
+				props->fec_inner = FEC_7_8;
+			}
+		}
+		
+		props->stream_id = stream_info.isi;
 
-	ret = avl62x1_get_signal_strength(&sig_strength, priv->chip);
+		/*  STATS  */
+		//SNR
+		ret |= avl62x1_get_snr(&snr_db_x100,
+				       priv->chip);
+		props->cnr.len = 2;
+		props->cnr.stat[0].scale = FE_SCALE_DECIBEL; //0.001dB
+		props->cnr.stat[0].svalue = snr_db_x100 * 10;
+		props->cnr.stat[1].scale = FE_SCALE_RELATIVE;
+		//props->cnr.stat[1].uvalue = ((snr_db_x100 + 300) / 10) * 250;
+		//max SNR is about 28dB, min is about -3
+		props->cnr.stat[1].uvalue = ((snr_db_x100+300) * 0xffff) / (31*100);
+		if (props->cnr.stat[1].uvalue > 0xffff) {
+			props->cnr.stat[1].uvalue = 0xffff;
+		}
 
-	c->strength.len = 2;
+		//RF strength
+		ret |= avl62x1_get_signal_strength(&sig_strength,
+						   priv->chip);
 
-	c->strength.stat[1].scale = FE_SCALE_RELATIVE;
-	c->strength.stat[1].uvalue = (sig_strength * 65535) / 100;
+		props->strength.len = 2;
+		props->strength.stat[0].scale = FE_SCALE_DECIBEL;
+		props->strength.stat[0].svalue = -80 + sig_strength / 2;
+		props->strength.stat[1].scale = FE_SCALE_RELATIVE;
+		props->strength.stat[1].uvalue = (sig_strength * 0xffff) / 100;
+		if(props->strength.stat[1].uvalue > 0xffff) {
+			props->strength.stat[1].uvalue = 0xffff;
+		}
 
-	c->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	c->strength.stat[0].svalue = -80 + sig_strength / 2;
+		//DVB-S pre/post viterbi
+		props->pre_bit_error.len = 0;
+		props->pre_bit_count.len = 0;
+		props->post_bit_error.len = 0;
+		props->post_bit_count.len = 0;
+		
+		//TODO: post outer FEC block errors
+		props->block_error.len = 1;
+		props->block_error.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+		props->block_error.stat[0].uvalue = 0;
 
-	if (lock == avl62x1_status_locked)
-	{
-		*status |= FE_HAS_CARRIER |
-			   FE_HAS_VITERBI |
-			   FE_HAS_SYNC |
-			   FE_HAS_LOCK;
-		c->cnr.len = 2;
-		c->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-		c->cnr.stat[0].svalue = snr_x100db * 10;
-		c->cnr.stat[1].scale = FE_SCALE_RELATIVE;
-		c->cnr.stat[1].uvalue = ((snr_x100db + 300) / 10) * 250;
-		if (c->cnr.stat[1].uvalue > 0xffff)
-			c->cnr.stat[1].uvalue = 0xffff;
-	}
-	else
-	{
-		c->cnr.len = 1;
-		c->cnr.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+		props->block_count.len = 1;
+		props->block_count.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+		props->block_count.stat[0].uvalue = 0;
+	} else {
+		//not locked
+		props->cnr.len = 1;
+		props->cnr.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+
+		props->strength.len = 1;
+		props->strength.stat[1].scale = FE_SCALE_NOT_AVAILABLE;
+
+		props->block_error.len = 1;
+		props->block_error.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+
+		props->block_count.len = 1;
+		props->block_count.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
 	}
 	return ret;
+}
+
+static int read_status(struct dvb_frontend *fe, enum fe_status *status)
+{
+	int r;
+	struct avl62x1_priv *priv = fe->demodulator_priv;
+	avl62x1_lock_status lock;
+
+	//dbg_avl("ENTER");
+
+	r = avl62x1_get_lock_status(&lock,
+				    priv->chip);
+	if(r == AVL_EC_OK) {
+		if(lock == avl62x1_status_locked) {
+			*status = FE_HAS_LOCK;
+			r = get_frontend(fe,
+					 &fe->dtv_property_cache);
+		} else {
+			*status = FE_NONE;
+		}
+	} else {
+		r = -EIO;
+	}
+	return r;
 }
 
 static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	int i;
+
+	//dbg_avl("ENTER");
 
 	*strength = 0;
 	for (i = 0; i < c->strength.len; i++)
@@ -432,6 +570,8 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr)
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	int i;
 
+	//dbg_avl("ENTER");
+
 	*snr = 0;
 	for (i = 0; i < c->cnr.len; i++)
 		if (c->cnr.stat[i].scale == FE_SCALE_RELATIVE)
@@ -439,12 +579,14 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr)
 
 	return 0;
 }
-
 static int read_ber(struct dvb_frontend *fe, u32 *ber)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	int ret;
 
+	//dbg_avl("ENTER");
+
+	//FIXME
 	*ber = 10e7;
 	ret = (int)avl62x1_get_per(ber, priv->chip);
 	if (!ret)
@@ -461,6 +603,7 @@ static int get_frontend_algo(struct dvb_frontend *fe)
 static int set_frontend(struct dvb_frontend *fe)
 {
 	int ret;
+	dbg_avl("ENTER");
 
 	/* setup tuner */
 	if (fe->ops.tuner_ops.set_params)
@@ -473,7 +616,6 @@ static int set_frontend(struct dvb_frontend *fe)
 		if (ret)
 			return ret;
 	}
-
 	dbg_avl("ACQUIRE");
 	ret = acquire_dvbs_s2(fe);
 
@@ -553,9 +695,9 @@ static struct dvb_frontend_ops avl62x1_ops = {
     .i2c_gate_ctrl = i2c_gate_ctrl,
 
     .read_status = read_status,
-    .read_signal_strength = read_signal_strength,
-    .read_snr = read_snr,
-    .read_ber = read_ber,
+    .read_ber = read_ber, //V3
+    .read_snr = read_snr, //V3
+    .read_signal_strength = read_signal_strength, //V3
     .set_tone = diseqc_set_tone,
     .set_voltage = diseqc_set_voltage,
     .diseqc_send_master_cmd = diseqc_send_master_cmd,
@@ -563,7 +705,7 @@ static struct dvb_frontend_ops avl62x1_ops = {
     .get_frontend_algo = get_frontend_algo,
     .tune = tune,
     .set_frontend = set_frontend,
-		//TODO: implement get_frontend
+    .get_frontend = get_frontend,
 };
 
 struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,

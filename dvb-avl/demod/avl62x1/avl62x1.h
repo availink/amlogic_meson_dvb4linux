@@ -14,7 +14,7 @@
 #include <linux/dvb/frontend.h>
 #include <media/dvb_frontend.h>
 
-#include "AVL62X1_DVBSx.h"
+#include "avl62x1_lib.h"
 
 #define xstr(a) str(a)
 #define str(a) #a

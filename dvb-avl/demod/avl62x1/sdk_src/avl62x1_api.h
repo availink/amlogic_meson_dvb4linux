@@ -56,6 +56,8 @@ uint16_t avl62x1_get_stream_list(struct avl62x1_stream_info *streams,
 				 struct avl62x1_chip *chip);
 uint16_t avl62x1_switch_stream(struct avl62x1_stream_info *stream_info,
 			       struct avl62x1_chip *chip);
+uint16_t avl62x1_get_stream_info(struct avl62x1_stream_info *stream_info,
+				 struct avl62x1_chip *chip);
 
 uint16_t avl62x1_init_diseqc(struct avl62x1_diseqc_params *params,
 			     struct avl62x1_chip *chip);

@@ -13,9 +13,9 @@
 #include "avl_tuner.h"
 #include "avl_lib.h"
 
-#define AVL62X1_SDK_VER_MAJOR 1  //Public API rev
-#define AVL62X1_SDK_VER_MINOR 8  //SDK-FW API rev
-#define AVL62X1_SDK_VER_BUILD 23 //internal rev
+#define AVL62X1_SDK_VER_MAJOR		2 //Public API rev
+#define AVL62X1_SDK_VER_MINOR		8 //SDK-FW API rev
+#define AVL62X1_SDK_VER_BUILD		0 //internal rev
 
 #define AVL62X1_CHIP_ID			0x62615ca8
 
@@ -474,6 +474,7 @@ struct avl62x1_carrier_info
 
 	enum avl62x1_rolloff roll_off;
 	enum avl62x1_standard signal_type;
+	enum avl62x1_spectrum_polarity spectrum_invert;
 
 	/*
 	* Physical layer scrambling.
@@ -530,9 +531,9 @@ struct avl62x1_t2mi_info
 struct avl62x1_stream_info
 {
 	/*
-		* //index of carrier (avl62x1_carrier_info.carrier_idx)
-		* that this stream is in
-		*/
+	* //index of carrier (avl62x1_carrier_info.carrier_idx)
+	* that this stream is in
+	*/
 	uint8_t carrier_idx;
 
 	enum avl62x1_dvb_stream_type stream_type;
@@ -543,21 +544,21 @@ struct avl62x1_stream_info
 struct avl62x1_error_stats
 {
 	/*
-		* Indicates whether the receiver is synchronized
-		* with the transmitter generating the BER test pattern.
-		*/
+	* Indicates whether the receiver is synchronized
+	* with the transmitter generating the BER test pattern.
+	*/
 	uint16_t lfsr_sync;
 
 	/*
-		* Indicates whether the receiver has lost lock since the
-		* BER/PER measurement was started.
-		*/
+	* Indicates whether the receiver has lost lock since the
+	* BER/PER measurement was started.
+	*/
 	uint16_t lost_lock;
 
 	/*
-		* Internal software counters which store the number
-		* of bits/bit errors which have been received.
-		*/
+	* Internal software counters which store the number
+	* of bits/bit errors which have been received.
+	*/
 	struct avl_uint64 sw_cnt_num_bits;
 	struct avl_uint64 sw_cnt_bit_errs;
 
@@ -565,9 +566,9 @@ struct avl62x1_error_stats
 	struct avl_uint64 bit_errs; //total detected bit errors
 
 	/*
-		* Internal software counters which store the number
-		* of pkts/pkt errors which have been received.
-		*/
+	* Internal software counters which store the number
+	* of pkts/pkt errors which have been received.
+	*/
 	struct avl_uint64 sw_cnt_num_pkts;
 	struct avl_uint64 sw_cnt_pkt_errs;
 
@@ -652,9 +653,9 @@ struct avl62x1_chip_priv
 struct avl62x1_chip_pub
 {
 	/*
-		* demod ID and I2C slave address
-		* ((ID & 0x7)<<8) | (slv_addr & 0xFF)
-		*/
+	* demod ID and I2C slave address
+	* ((ID & 0x7)<<8) | (slv_addr & 0xFF)
+	*/
 	uint16_t i2c_addr;
 
 	enum avl62x1_xtal ref_clk; //Crystal reference clock
@@ -676,10 +677,10 @@ struct avl62x1_chip_pub
 	enum avl62x1_mpeg_bit_order		mpeg_bit_order;
 
 	/*
-		* Requested MPEG clk freq for non-adaptive mode.
-		* After initialization, avl62x1_chip_priv.mpeg_clk_freq_hz
-		* contains actual operational frequency.
-		*/
+	* Requested MPEG clk freq for non-adaptive mode.
+	* After initialization, avl62x1_chip_priv.mpeg_clk_freq_hz
+	* contains actual operational frequency.
+	*/
 	uint32_t req_mpeg_clk_freq_hz;
 };
 
