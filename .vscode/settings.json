@@ -1,4 +1,9 @@
 {
+  "[c]": {
+    "editor.tabSize": 8,
+    "editor.insertSpaces": false,
+    "editor.detectIndentation": false
+  },
   "files.associations": {
     "slab.h": "c",
     "avl_tuner.h": "c",

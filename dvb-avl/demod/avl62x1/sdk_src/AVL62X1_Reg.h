@@ -1,21 +1,9 @@
 /*
  * Availink AVL6261 DVB-S/S2/S2X demodulator driver
- *
+ * 
+ * SPDX-License-Identifier: GPL-2.0-or-later
  * Copyright (C) 2020 Availink, Inc. (opensource@availink.com)
  *
- *    This program is free software; you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation; either version 2 of the License, or
- *    (at your option) any later version.
- *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License along
- *    with this program; if not, write to the Free Software Foundation, Inc.,
- *    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #ifndef _AVL62X1_REG_H_
@@ -261,7 +249,6 @@
 #define s_AVL62X1_S2X_iq_swap_active_caddr                (AVL62X1_DVBS2X_status_regs_base + 0x0000002a)
 #define s_AVL62X1_S2X_acq_retry_count_caddr               (AVL62X1_DVBS2X_status_regs_base + 0x0000002b)
 #define s_AVL62X1_S2X_post_viterbi_BER_estimate_x10M_iaddr (AVL62X1_DVBS2X_status_regs_base + 0x0000002c)
-#define s_AVL62X1_S2X_PLScramKey_iaddr                    (AVL62X1_DVBS2X_status_regs_base + 0x00000030)
 #define s_AVL62X1_S2X_pre_LDPC_BER_estimate_x100K_iaddr   (AVL62X1_DVBS2X_status_regs_base + 0x00000034)
 #define s_AVL62X1_S2X_btr_status_iaddr                    (AVL62X1_DVBS2X_status_regs_base + 0x00000038)
 #define s_AVL62X1_S2X_alpha_caddr                         (AVL62X1_DVBS2X_status_regs_base + 0x00000038)

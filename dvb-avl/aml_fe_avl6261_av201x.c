@@ -1,19 +1,5 @@
 /*
-
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
+ * SPDX-License-Identifier: GPL-2.0-or-later
 */
 
 #define USE_AVL_201X  1
@@ -173,16 +159,16 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 	avl62x1_config.chip_pub = &chip_pub;
 	chip_pub.i2c_addr = ((/*demod ID*/ (id & AVL_DEMOD_ID_MASK)) << 8) |
 			    ((uint8_t)demod_i2c_addr);
-	chip_pub.ref_clk = AVL62X1_RefClk_27M;
-	chip_pub.tuner_pol = AVL62X1_Spectrum_Invert;
-	chip_pub.mpeg_mode = AVL62X1_MPM_Parallel;
-	chip_pub.mpeg_clk_pol = AVL62X1_MPCP_Rising;
-	chip_pub.mpeg_err_pol = AVL62X1_MPEP_Normal;
-	chip_pub.mpeg_valid_pol = AVL62X1_MPEP_Normal;
-	chip_pub.mpeg_clk_phase = AVL62X1_MPCP_Phase_0;
-	chip_pub.mpeg_clk_adapt = AVL62X1_MPCA_Adaptive;
-	chip_pub.mpeg_format = AVL62X1_MPF_TS;
-	chip_pub.mpeg_serial_pin = AVL62X1_MPSP_DATA0;
+	chip_pub.ref_clk = avl62x1_refclk_27mhz;
+	chip_pub.tuner_pol = avl62x1_specpol_inverted;
+	chip_pub.mpeg_mode = avl62x1_mpm_parallel;
+	chip_pub.mpeg_clk_pol = avl62x1_mpcp_rising;
+	chip_pub.mpeg_err_pol = avl62x1_mpep_normal;
+	chip_pub.mpeg_valid_pol = avl62x1_mpep_normal;
+	chip_pub.mpeg_clk_phase = avl62x1_mpcp_phase_0;
+	chip_pub.mpeg_clk_adapt = avl62x1_mpca_adaptive;
+	chip_pub.mpeg_format = avl62x1_mpf_ts;
+	chip_pub.mpeg_serial_pin = avl62x1_mpsp_data_0;
 	chip_pub.req_mpeg_clk_freq_hz = 120000000;
 
 	//config tuner
@@ -217,7 +203,7 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 		       fe->fe,
 		       &av201x_config,
 		       i2c_handle,
-		       &(demod_priv->chip->chip_pub->pTuner)) == NULL)
+		       &(demod_priv->chip->chip_pub->tuner)) == NULL)
 #else
 	av201x_config.xtal_freq = 27000;
 	if(dvb_attach(av201x_attach, fe->fe, &av201x_config, i2c_handle) == NULL)

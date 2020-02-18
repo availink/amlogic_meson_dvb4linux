@@ -2,21 +2,9 @@
  * Availink AVL62X1 DVB-S/S2/S2X demodulator driver
  * Supports AVL6221 and AVL6261. NOT AVL6211
  *
+ * SPDX-License-Identifier: GPL-2.0-or-later
  * Copyright (C) 2020 Availink, Inc. (opensource@availink.com)
  *
- *    This program is free software; you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation; either version 2 of the License, or
- *    (at your option) any later version.
- *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License along
- *    with this program; if not, write to the Free Software Foundation, Inc.,
- *    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #include <linux/init.h>
@@ -61,116 +49,103 @@ struct avl_tuner default_avl_tuner = {
 int init_error_stat(struct avl62x1_priv *priv)
 {
 	uint16_t r = AVL_EC_OK;
-	struct avl62x1_error_stats_config stErrorStatConfig;
-	struct avl62x1_ber_config stBERConfig;
+	struct avl62x1_error_stats_config err_stats_config;
+	struct avl62x1_ber_config ber_config;
 
-	stErrorStatConfig.eErrorStatMode = AVL62X1_ERROR_STATS_AUTO;
-	stErrorStatConfig.eAutoErrorStatType = AVL62X1_ERROR_STATS_TIME;
-	stErrorStatConfig.uiTimeThresholdMs = 3000;
-	stErrorStatConfig.uiNumberThresholdByte = 0;
+	err_stats_config.error_stats_mode = avl62x1_error_stats_auto;
+	err_stats_config.auto_error_stats_type = avl62x1_error_stats_time;
+	err_stats_config.time_threshold_ms = 3000;
+	err_stats_config.bytes_threshold = 0;
 
-	r = IRx_ErrorStatMode_AVL62X1(&stErrorStatConfig, priv->chip);
+	r = avl62x1_config_error_stats(&err_stats_config, priv->chip);
 
-	stBERConfig.eBERTestPattern = AVL62X1_TEST_LFSR_23;
-	stBERConfig.eBERFBInversion = AVL62X1_LFSR_FB_INVERTED;
-	stBERConfig.uiLFSRSynced = 0;
-	stBERConfig.uiLFSRStartPos = 4;
-	r |= IRx_ResetBER_AVL62X1(&stBERConfig, priv->chip);
+	ber_config.test_pattern = avl62x1_test_lfsr_23;
+	ber_config.fb_inversion = avl62x1_lfsr_fb_inverted;
+	ber_config.lfsr_sync = 0;
+	ber_config.lfsr_start_pos = 4;
+	r |= avl62x1_reset_ber(&ber_config, priv->chip);
 
 	return r;
 }
 
-static int avl62x1_init_dvbs(struct dvb_frontend *fe)
+static int init_dvbs_s2(struct dvb_frontend *fe)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
-	struct avl62x1_diseqc_params Diseqc_para;
+	struct avl62x1_diseqc_params params;
 	uint16_t r = AVL_EC_OK;
 
-	Diseqc_para.uiToneFrequencyKHz = 22;
-	Diseqc_para.eTXGap = AVL62X1_DTXG_15ms;
-	Diseqc_para.eTxWaveForm = AVL62X1_DWM_Normal;
-	Diseqc_para.eRxTimeout = AVL62X1_DRT_150ms;
-	Diseqc_para.eRxWaveForm = AVL62X1_DWM_Normal;
+	params.tone_freq_khz = 22;
+	params.tx_gap = avl62x1_dtxg_15ms;
+	params.tx_waveform = avl62x1_dwm_normal;
+	params.rx_timeout = avl62x1_drt_150ms;
+	params.rx_waveform = avl62x1_dwm_normal;
 
-	r |= IDiseqc_Initialize_AVL62X1(&Diseqc_para, priv->chip);
+	r |= avl62x1_init_diseqc(&params, priv->chip);
 	if (AVL_EC_OK != r)
 	{
 		dbg_avl("Diseqc Init failed !\n");
 	}
 
-	r |= (int)AVL62X1_SetGPIODir(AVL62X1_GPIO_Pin_LNB_PWR_EN,
-				    AVL62X1_GPIO_DIR_OUTPUT,
-				    priv->chip);
-	r |= (int)AVL62X1_SetGPIODir(AVL62X1_GPIO_Pin_LNB_PWR_SEL,
-				     AVL62X1_GPIO_DIR_OUTPUT,
-				     priv->chip);
+	r |= (int)avl62x1_set_gpio_dir(avl62x1_gpio_pin_lnb_pwr_en,
+				       avl62x1_gpio_dir_output,
+				       priv->chip);
+	r |= (int)avl62x1_set_gpio_dir(avl62x1_gpio_pin_lnb_pwr_sel,
+				       avl62x1_gpio_dir_output,
+				       priv->chip);
 
 	return r;
 }
 
-static int avl62x1_i2c_gate_ctrl(struct dvb_frontend *fe, int enable)
+static int i2c_gate_ctrl(struct dvb_frontend *fe, int enable)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	uint16_t ret = AVL_EC_OK;
 
 	dbg_avl("%d\n", enable);
 
-	if(priv->chip == NULL) {
-		dev_err(&priv->i2c->dev, KBUILD_MODNAME ": NULL fe->demodulator_priv->chip");
+	if (priv->chip == NULL)
+	{
+		dev_err(&priv->i2c->dev,
+			KBUILD_MODNAME ": NULL fe->demodulator_priv->chip");
 	}
 
 	if (enable)
 	{
-		ret = AVL62X1_OpenTunerI2C(priv->chip);
+		ret = avl62x1_enable_tuner_i2c(priv->chip);
 	}
 	else
 	{
-		ret = AVL62X1_CloseTunerI2C(priv->chip);
+		ret = avl62x1_disable_tuner_i2c(priv->chip);
 	}
 	return ret;
 }
 
-static int avl62x1_set_dvbs(struct dvb_frontend *fe)
+static int acquire_dvbs_s2(struct dvb_frontend *fe)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	uint16_t r = AVL_EC_OK;
-	struct avl62x1_carrier_info CarrierInfo;
-	struct avl62x1_stream_info StreamInfo;
+	struct avl62x1_carrier_info carrier_info;
+	struct avl62x1_stream_info stream_info;
 	dbg_avl("Freq:%d khz,sym:%d hz", c->frequency, c->symbol_rate);
 
-	CarrierInfo.m_carrier_index = 0;
-	CarrierInfo.m_rf_freq_kHz = c->frequency;
-	//carrier frequency offset (from RF freq) in Hz
-	CarrierInfo.m_carrier_freq_offset_Hz = 0;
-	CarrierInfo.m_symbol_rate_Hz = c->symbol_rate;
-	CarrierInfo.m_roll_off = 0;
-	CarrierInfo.m_signal_type = 0;
-	CarrierInfo.m_PL_scram_key = AVL62X1_PL_SCRAM_AUTO;
-	CarrierInfo.m_PLS_ACM = 0; //PLS if CCM, 0 if ACM
-	CarrierInfo.m_SIS_MIS = 0;
-	//number of supported streams (that can be output)
-	CarrierInfo.m_num_streams = 0;
-	CarrierInfo.m_SNR_dB_x100 = 0;
-	CarrierInfo.m_modulation = 0;
-	CarrierInfo.m_pilot = 0;
-	CarrierInfo.m_dvbs2_fec_length = 0;
-	CarrierInfo.m_coderate.m_dvbs2_code_rate = 0;
-	CarrierInfo.m_dvbs2_ccm_acm = 0; //1:CCM, 0:ACM
-	//index of carrier (avl62x1_carrier_info.m_CarrierIndex) that this stream is in
-	StreamInfo.m_carrier_index = 0;
-	StreamInfo.m_stream_type = AVL62X1_TRANSPORT;
-	StreamInfo.m_ISI = c->stream_id;
-	StreamInfo.m_PLP_ID = 0;	 // use when lock TP
-	StreamInfo.PLP_List.PLP_Num = 0; // save scan out the PLP list for T2MI ISI
+	carrier_info.rf_freq_khz = c->frequency;
+	carrier_info.carrier_freq_offset_hz = 0;
+	carrier_info.symbol_rate_hz = c->symbol_rate;
+	carrier_info.pl_scrambling = AVL62X1_PL_SCRAM_AUTO;
+	stream_info.stream_type = avl62x1_transport;
+	stream_info.isi = c->stream_id;
 
-	r = AVL62X1_LockTP(&CarrierInfo, &StreamInfo, AVL_FALSE, priv->chip);
+	r = avl62x1_lock_tp(&carrier_info,
+			    &stream_info,
+			    AVL_FALSE, /* don't do blind symbol rate */
+			    priv->chip);
 
 	return r;
 }
 
-static int avl62x1_set_dvbmode(struct dvb_frontend *fe,
-			       enum fe_delivery_system delsys)
+static int set_dvb_mode(struct dvb_frontend *fe,
+			enum fe_delivery_system delsys)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	uint16_t ret = AVL_EC_OK;
@@ -207,34 +182,34 @@ static int avl62x1_set_dvbmode(struct dvb_frontend *fe,
 	}
 
 	// boot the firmware here
-	r |= AVL62X1_Initialize(priv->chip);
+	r |= avl62x1_initialize(priv->chip);
 	if (AVL_EC_OK != r)
 	{
 		dbg_avl("AVL_AVL62X1_Initialize failed !\n");
 		return (r);
 	}
 
-	r |= IBase_GetVersion_AVL62X1(&ver_info, priv->chip);
+	r |= avl62x1_get_version(&ver_info, priv->chip);
 	if (AVL_EC_OK != r)
 	{
-		dbg_avl("IBase_GetVersion_AVL62X1 failed\n");
+		dbg_avl("avl62x1_get_version failed\n");
 		return (r);
 	}
 	dbg_avl("FW version %d.%d.%d\n",
-		ver_info.m_Patch.m_Major,
-		ver_info.m_Patch.m_Minor,
-		ver_info.m_Patch.m_Build);
+		ver_info.firmware.major,
+		ver_info.firmware.minor,
+		ver_info.firmware.build);
 	dbg_avl("SDK version %d.%d.%d\n",
-		ver_info.m_API.m_Major,
-		ver_info.m_API.m_Minor,
-		ver_info.m_API.m_Build);
+		ver_info.sdk.major,
+		ver_info.sdk.minor,
+		ver_info.sdk.build);
 
 	switch (priv->delivery_system)
 	{
 	case SYS_DVBS:
 	case SYS_DVBS2:
 	default:
-		ret |= avl62x1_init_dvbs(fe);
+		ret |= init_dvbs_s2(fe);
 		break;
 	}
 
@@ -253,10 +228,10 @@ uint16_t diseqc_send_cmd(struct avl62x1_priv *priv,
 			 uint8_t cmdsize)
 {
 	uint16_t r = AVL_EC_OK;
-	struct avl62x1_diseqc_tx_status TxStatus;
+	struct avl62x1_diseqc_tx_status tx_status;
 	dbg_avl(" %*ph", cmdsize, cmd);
 
-	r = AVL62X1_IDiseqc_SendModulationData(cmd, cmdsize, priv->chip);
+	r = avl62x1_send_diseqc_data(cmd, cmdsize, priv->chip);
 	if (r != AVL_EC_OK)
 	{
 		printk("diseqc_send_cmd failed !\n");
@@ -266,8 +241,9 @@ uint16_t diseqc_send_cmd(struct avl62x1_priv *priv,
 		do
 		{
 			msleep(5);
-			r |= AVL62X1_IDiseqc_GetTxStatus(&TxStatus, priv->chip);
-		} while (TxStatus.m_TxDone != 1);
+			r |= avl62x1_get_diseqc_tx_status(&tx_status,
+							  priv->chip);
+		} while (tx_status.tx_complete != 1);
 		if (r == AVL_EC_OK)
 		{
 		}
@@ -279,27 +255,27 @@ uint16_t diseqc_send_cmd(struct avl62x1_priv *priv,
 	return (int)(r);
 }
 
-static int avl62x1_send_master_cmd(struct dvb_frontend *fe,
-			  struct dvb_diseqc_master_cmd *cmd)
+static int diseqc_send_master_cmd(struct dvb_frontend *fe,
+				  struct dvb_diseqc_master_cmd *cmd)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 
 	return diseqc_send_cmd(priv, cmd->msg, cmd->msg_len);
 }
 
-static int avl62x1_send_burst(struct dvb_frontend *fe,
-enum fe_sec_mini_cmd burst)
+static int diseqc_send_burst(struct dvb_frontend *fe,
+			     enum fe_sec_mini_cmd burst)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	int ret;
 	uint8_t tone = burst == SEC_MINI_A ? 1 : 0;
 	uint8_t count = 1;
-	ret = (int)AVL62X1_IDiseqc_SendTone(tone, count, priv->chip);
+	ret = (int)avl62x1_send_diseqc_tone(tone, count, priv->chip);
 
 	return ret;
 }
 
-static int avl62x1_set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
+static int diseqc_set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	int r = AVL_EC_OK;
@@ -309,16 +285,16 @@ static int avl62x1_set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 	{
 	case SEC_TONE_ON:
 		if (priv->chip->chip_priv->diseqc_op_status !=
-		    AVL62X1_DOS_InContinuous)
+		    avl62x1_dos_continuous)
 		{
-			r = (int)AVL62X1_IDiseqc_Stop22K(priv->chip);
+			r = (int)avl62x1_diseqc_tone_off(priv->chip);
 		}
 		break;
 	case SEC_TONE_OFF:
 		if (priv->chip->chip_priv->diseqc_op_status ==
-		    AVL62X1_DOS_InContinuous)
+		    avl62x1_dos_continuous)
 		{
-			r = (int)AVL62X1_IDiseqc_Start22K(priv->chip);
+			r = (int)avl62x1_diseqc_tone_on(priv->chip);
 		}
 		break;
 	default:
@@ -327,8 +303,8 @@ static int avl62x1_set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 	return r;
 }
 
-static int avl62x1_set_voltage(struct dvb_frontend *fe,
-			       enum fe_sec_voltage voltage)
+static int diseqc_set_voltage(struct dvb_frontend *fe,
+			      enum fe_sec_voltage voltage)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	avl62x1_gpio_pin_value pwr, vol;
@@ -339,52 +315,52 @@ static int avl62x1_set_voltage(struct dvb_frontend *fe,
 	switch (voltage)
 	{
 	case SEC_VOLTAGE_OFF:
-		pwr = AVL62X1_GPIO_VALUE_LOGIC_0;
-		vol = AVL62X1_GPIO_VALUE_LOGIC_0;
+		pwr = avl62x1_gpio_value_logic_0;
+		vol = avl62x1_gpio_value_logic_0;
 		break;
 	case SEC_VOLTAGE_13:
 		//power on
-		pwr = AVL62X1_GPIO_VALUE_LOGIC_1;
-		vol = AVL62X1_GPIO_VALUE_LOGIC_0;
+		pwr = avl62x1_gpio_value_logic_1;
+		vol = avl62x1_gpio_value_logic_0;
 		break;
 	case SEC_VOLTAGE_18:
 		//power on
-		pwr = AVL62X1_GPIO_VALUE_LOGIC_1;
-		vol = AVL62X1_GPIO_VALUE_HIGH_Z;
+		pwr = avl62x1_gpio_value_logic_1;
+		vol = avl62x1_gpio_value_high_z;
 		break;
 	default:
 		return -EINVAL;
 	}
-	ret = (int)AVL62X1_SetGPIOVal(AVL62X1_GPIO_Pin_LNB_PWR_EN,
-				      pwr,
-				      priv->chip);
-	ret |= (int)AVL62X1_SetGPIOVal(AVL62X1_GPIO_Pin_LNB_PWR_SEL,
-				       vol,
-				       priv->chip);
+	ret = (int)avl62x1_set_gpio_value(avl62x1_gpio_pin_lnb_pwr_en,
+					  pwr,
+					  priv->chip);
+	ret |= (int)avl62x1_set_gpio_value(avl62x1_gpio_pin_lnb_pwr_sel,
+					   vol,
+					   priv->chip);
 	return ret;
 }
 
-static int avl62x1_read_status(struct dvb_frontend *fe, enum fe_status *status)
+static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	int ret = 0;
 	avl62x1_lock_status lock = 0;
-	int16_t SNR_x100db = 0;
-	int16_t SignalStrength = 0;
+	int16_t snr_x100db = 0;
+	int16_t sig_strength = 0;
 
 	switch (priv->delivery_system)
 	{
 	case SYS_DVBS:
 	case SYS_DVBS2:
-		ret = AVL62X1_GetLockStatus(&lock, priv->chip);
+		ret = avl62x1_get_lock_status(&lock, priv->chip);
 		//dbg_avl("lock: %d", lock);
-		if (lock == AVL62X1_STATUS_LOCK)
+		if (lock == avl62x1_status_locked)
 		{
-			ret |= AVL62X1_GetSNR(&SNR_x100db, priv->chip);
-			dbg_avl("SNR_x100db: %d", SNR_x100db);
-			if (ret || SNR_x100db > 10000)
-				SNR_x100db = 0;
+			ret |= avl62x1_get_snr(&snr_x100db, priv->chip);
+			dbg_avl("snr_x100db: %d", snr_x100db);
+			if (ret || snr_x100db > 10000)
+				snr_x100db = 0;
 		}
 		else
 		{
@@ -406,17 +382,17 @@ static int avl62x1_read_status(struct dvb_frontend *fe, enum fe_status *status)
 
 	//dbg_avl("%s", read_stdout(priv->chip));
 
-	ret = AVL62X1_GetSignalStrength(&SignalStrength, priv->chip);
+	ret = avl62x1_get_signal_strength(&sig_strength, priv->chip);
 
 	c->strength.len = 2;
 
 	c->strength.stat[1].scale = FE_SCALE_RELATIVE;
-	c->strength.stat[1].uvalue = (SignalStrength * 65535) / 100;
+	c->strength.stat[1].uvalue = (sig_strength * 65535) / 100;
 
 	c->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	c->strength.stat[0].svalue = -80 + SignalStrength / 2;
+	c->strength.stat[0].svalue = -80 + sig_strength / 2;
 
-	if (lock == AVL62X1_STATUS_LOCK)
+	if (lock == avl62x1_status_locked)
 	{
 		*status |= FE_HAS_CARRIER |
 			   FE_HAS_VITERBI |
@@ -424,9 +400,9 @@ static int avl62x1_read_status(struct dvb_frontend *fe, enum fe_status *status)
 			   FE_HAS_LOCK;
 		c->cnr.len = 2;
 		c->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-		c->cnr.stat[0].svalue = SNR_x100db * 10;
+		c->cnr.stat[0].svalue = snr_x100db * 10;
 		c->cnr.stat[1].scale = FE_SCALE_RELATIVE;
-		c->cnr.stat[1].uvalue = ((SNR_x100db + 300) / 10) * 250;
+		c->cnr.stat[1].uvalue = ((snr_x100db + 300) / 10) * 250;
 		if (c->cnr.stat[1].uvalue > 0xffff)
 			c->cnr.stat[1].uvalue = 0xffff;
 	}
@@ -438,7 +414,7 @@ static int avl62x1_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	return ret;
 }
 
-static int avl62x1_read_signal_strength(struct dvb_frontend *fe, u16 *strength)
+static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	int i;
@@ -451,7 +427,7 @@ static int avl62x1_read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	return 0;
 }
 
-static int avl62x1_read_snr(struct dvb_frontend *fe, u16 *snr)
+static int read_snr(struct dvb_frontend *fe, u16 *snr)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	int i;
@@ -464,30 +440,27 @@ static int avl62x1_read_snr(struct dvb_frontend *fe, u16 *snr)
 	return 0;
 }
 
-static int avl62x1_read_ber(struct dvb_frontend *fe, u32 *ber)
+static int read_ber(struct dvb_frontend *fe, u32 *ber)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	int ret;
 
 	*ber = 10e7;
-	ret = (int)AVL62X1_GetPER(ber, priv->chip);
+	ret = (int)avl62x1_get_per(ber, priv->chip);
 	if (!ret)
 		*ber /= 100;
 
 	return ret;
 }
 
-static int avl62x1_fe_algo(struct dvb_frontend *fe)
+static int get_frontend_algo(struct dvb_frontend *fe)
 {
 	return DVBFE_ALGO_HW;
 }
 
-//static  struct dtv_frontend_properties _last_dtv;
-
-static int avl62x1_set_frontend(struct dvb_frontend *fe)
+static int set_frontend(struct dvb_frontend *fe)
 {
 	int ret;
-	//struct avl62x1_priv *priv = fe->demodulator_priv;
 
 	/* setup tuner */
 	if (fe->ops.tuner_ops.set_params)
@@ -502,38 +475,38 @@ static int avl62x1_set_frontend(struct dvb_frontend *fe)
 	}
 
 	dbg_avl("ACQUIRE");
-	ret = avl62x1_set_dvbs(fe);
+	ret = acquire_dvbs_s2(fe);
 
 	return ret;
 }
 
-static int avl62x1_tune(struct dvb_frontend *fe,
-			bool re_tune,
-			unsigned int mode_flags,
-			unsigned int *delay,
-			enum fe_status *status)
+static int tune(struct dvb_frontend *fe,
+		bool re_tune,
+		unsigned int mode_flags,
+		unsigned int *delay,
+		enum fe_status *status)
 {
 	*delay = HZ / 5;
 	if (re_tune)
 	{
-		int ret = avl62x1_set_frontend(fe);
+		int ret = set_frontend(fe);
 		if (ret)
 			return ret;
 	}
-	return avl62x1_read_status(fe, status);
+	return read_status(fe, status);
 }
 
-static int avl62x1_init(struct dvb_frontend *fe)
+static int init_fe(struct dvb_frontend *fe)
 {
 	return 0;
 }
 
-static int avl62x1_sleep(struct dvb_frontend *fe)
+static int sleep_fe(struct dvb_frontend *fe)
 {
 	return 0;
 }
 
-static void avl62x1_release(struct dvb_frontend *fe)
+static void release_fe(struct dvb_frontend *fe)
 {
 	struct avl62x1_priv *priv = fe->demodulator_priv;
 	kfree(priv->chip->chip_pub);
@@ -573,23 +546,24 @@ static struct dvb_frontend_ops avl62x1_ops = {
 	    FE_CAN_INVERSION_AUTO |
 	    FE_CAN_RECOVER},
 
-    .release = avl62x1_release,
-    .init = avl62x1_init,
+    .release = release_fe,
+    .init = init_fe,
 
-    .sleep = avl62x1_sleep,
-    .i2c_gate_ctrl = avl62x1_i2c_gate_ctrl,
+    .sleep = sleep_fe,
+    .i2c_gate_ctrl = i2c_gate_ctrl,
 
-    .read_status = avl62x1_read_status,
-    .read_signal_strength = avl62x1_read_signal_strength,
-    .read_snr = avl62x1_read_snr,
-    .read_ber = avl62x1_read_ber,
-    .set_tone = avl62x1_set_tone,
-    .set_voltage = avl62x1_set_voltage,
-    .diseqc_send_master_cmd = avl62x1_send_master_cmd,
-    .diseqc_send_burst = avl62x1_send_burst,
-    .get_frontend_algo = avl62x1_fe_algo,
-    .tune = avl62x1_tune,
-    .set_frontend = avl62x1_set_frontend,
+    .read_status = read_status,
+    .read_signal_strength = read_signal_strength,
+    .read_snr = read_snr,
+    .read_ber = read_ber,
+    .set_tone = diseqc_set_tone,
+    .set_voltage = diseqc_set_voltage,
+    .diseqc_send_master_cmd = diseqc_send_master_cmd,
+    .diseqc_send_burst = diseqc_send_burst,
+    .get_frontend_algo = get_frontend_algo,
+    .tune = tune,
+    .set_frontend = set_frontend,
+		//TODO: implement get_frontend
 };
 
 struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
@@ -601,7 +575,7 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 	int fw_status;
 	unsigned int fw_maj, fw_min, fw_build;
 
-	dbg_avl("enter %s()",__FUNCTION__);
+	dbg_avl("enter %s()", __FUNCTION__);
 
 	priv = kzalloc(sizeof(struct avl62x1_priv), GFP_KERNEL);
 	if (priv == NULL)
@@ -632,8 +606,8 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 	memcpy(priv->chip->chip_pub,
 	       config->chip_pub,
 	       sizeof(struct avl62x1_chip_pub));
-	
-	priv->chip->chip_pub->pTuner = &default_avl_tuner;
+
+	priv->chip->chip_pub->tuner = &default_avl_tuner;
 
 	dbg_avl("Demod %d, I2C addr 0x%x",
 		(priv->chip->chip_pub->i2c_addr >> 8) & 0x7,
@@ -643,15 +617,16 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 	avl_bsp_assoc_i2c_adapter(priv->chip->chip_pub->i2c_addr, i2c);
 
 	//set up semaphores
-	ret = Init_AVL62X1_ChipObject(priv->chip);
-	if(ret) {
+	ret = avl62x1_init_chip_object(priv->chip);
+	if (ret)
+	{
 		dev_err(&priv->i2c->dev,
 			KBUILD_MODNAME ": chip object init failed");
 		goto err4;
 	}
 
 	/* get chip id */
-	ret = AVL62X1_GetChipID(priv->chip->chip_pub->i2c_addr, &id);
+	ret = avl62x1_get_chip_id(priv->chip->chip_pub->i2c_addr, &id);
 	if (ret)
 	{
 		dev_err(&priv->i2c->dev,
@@ -686,14 +661,15 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 		fw_min = priv->chip->chip_priv->patch_data[25]; //SDK-FW API rev
 		fw_build = (priv->chip->chip_priv->patch_data[26] << 8) |
 			   priv->chip->chip_priv->patch_data[27]; //internal rev
-		if (fw_min != AVL62X1_API_VER_MINOR) //SDK-FW API rev must match
+		if(fw_min != AVL62X1_SDK_VER_MINOR)
 		{
+			//SDK-FW API rev must match
 			dev_err(&priv->i2c->dev,
 				KBUILD_MODNAME ": Firmware version %d.%d.%d incompatible with this driver version",
 				fw_maj, fw_min, fw_build);
 			dev_err(&priv->i2c->dev,
 				KBUILD_MODNAME ": Firmware minor version must be %d",
-				AVL62X1_API_VER_MINOR);
+				AVL62X1_SDK_VER_MINOR);
 			goto err5;
 		}
 		else
@@ -704,7 +680,7 @@ struct dvb_frontend *avl62x1_attach(struct avl62x1_config *config,
 		}
 	}
 
-	if (!avl62x1_set_dvbmode(&priv->frontend, SYS_DVBS2))
+	if (!set_dvb_mode(&priv->frontend, SYS_DVBS2))
 	{
 		dev_info(&priv->i2c->dev,
 			 KBUILD_MODNAME ": Firmware booted");
@@ -725,7 +701,6 @@ err1:
 err:
 	return NULL;
 } /* end avl62x1_attach() */
-
 
 EXPORT_SYMBOL_GPL(avl62x1_attach);
 
