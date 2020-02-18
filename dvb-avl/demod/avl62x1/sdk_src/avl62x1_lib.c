@@ -6,7 +6,7 @@
  *
  */
 
-#include "AVL62X1_DVBSx.h"
+#include "avl62x1_lib.h"
 
 uint16_t __avl62x1_check_chip_ready(struct avl62x1_chip *chip)
 {

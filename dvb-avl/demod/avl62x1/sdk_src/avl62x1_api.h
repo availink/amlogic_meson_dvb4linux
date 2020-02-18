@@ -9,7 +9,7 @@
 #ifndef _AVL62X1_API_H_
 #define _AVL62X1_API_H_
 
-#include "AVL62X1_DVBSx.h"
+#include "avl62x1_lib.h"
 
 
 uint16_t avl62x1_init_chip_object(struct avl62x1_chip *chip);

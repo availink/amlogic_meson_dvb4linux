@@ -6,7 +6,7 @@
  *
  */
 
-#include "AVL62X1_API.h"
+#include "avl62x1_api.h"
 
 uint16_t avl62x1_init_chip_object(struct avl62x1_chip *chip)
 {

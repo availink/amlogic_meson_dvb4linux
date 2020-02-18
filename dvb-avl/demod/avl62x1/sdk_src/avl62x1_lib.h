@@ -6,10 +6,10 @@
  *
  */
 
-#ifndef _AVL62X1_DVBSX_H_
-#define _AVL62X1_DVBSX_H_
+#ifndef _AVL62X1_LIB_H_
+#define _AVL62X1_LIB_H_
 
-#include "AVL62X1_Reg.h"
+#include "avl62x1_reg.h"
 #include "avl_tuner.h"
 #include "avl_lib.h"
 
