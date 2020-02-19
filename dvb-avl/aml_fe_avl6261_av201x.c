@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-#define USE_AVL_201X  1
+//#define USE_AVL_201X
 
 #ifndef CONFIG_ARM64
 #include <mach/am_regs.h>
