@@ -1,22 +1,8 @@
 /*
-
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
+ * SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-#define USE_AVL_201X  1
+//#define USE_AVL_201X
 
 #ifndef CONFIG_ARM64
 #include <mach/am_regs.h>
@@ -71,14 +57,6 @@ static struct aml_fe avl62x1_fe[FE_DEV_COUNT];
 
 static char *device_name = "avl62x1";
 
-#ifdef USE_AVL_201X
-static struct av201x_avl_config av201x_config;
-#else
-static struct av201x_config av201x_config;
-#endif
-
-static struct avl62x1_config avl62x1_config;
-
 int avl62x1_Reset(void)
 {
   pr_dbg("avl62x1_Reset!\n");
@@ -105,124 +83,158 @@ int avl62x1_gpio(void)
   return 0;
 }
 
-static int avl62x1_fe_init(struct aml_dvb *advb, struct platform_device *pdev, struct aml_fe *fe, int id)
+static int avl62x1_fe_init(struct aml_dvb *advb,
+			   struct platform_device *pdev,
+			   struct aml_fe *fe,
+			   int id)
 {
-  struct dvb_frontend_ops *ops;
-  int ret, i2c_adap_id = 1;
-  int demod_i2c_addr = 0x14;
-  int tuner_i2c_addr = 0x62;
+	struct dvb_frontend_ops *ops;
+	int ret, i2c_adap_id = 1;
+	int demod_i2c_addr = 0x14;
+	int tuner_i2c_addr = 0x62;
 
-  struct i2c_adapter *i2c_handle;
+	struct i2c_adapter *i2c_handle;
 #ifdef CONFIG_ARM64
-  struct gpio_desc *desc;
-  int gpio_reset, gpio_power;
+	struct gpio_desc *desc;
+	int gpio_reset, gpio_power;
 #endif
 
-  struct avl62x1_priv *demod_priv;
+	struct avl62x1_priv *demod_priv;
+
 #ifdef USE_AVL_201X
-  struct av201x_avl_priv *tuner_priv;
+	static struct av201x_avl_config av201x_config;
 #else
-  struct av201x_priv *tuner_priv;
+	static struct av201x_config av201x_config;
 #endif
 
-  pr_inf("Init AVL62x1 frontend %d\n", id);
+	static struct avl62x1_config avl62x1_config;
+
+	struct avl62x1_chip_pub chip_pub;
+
+	pr_inf("Init AVL62x1 frontend %d\n", id);
 
 #ifdef CONFIG_OF
-  pr_inf("CONFIG_OF defined\n");
-  if (of_property_read_u32(pdev->dev.of_node, "dtv_demod0_i2c_adap_id", &i2c_adap_id))
-  {
-    pr_dbg("error getting i2c_adap_id, of_node=%s\n", pdev->dev.of_node->name);
-    ret = -ENOMEM;
-    goto err_resource;
-  }
-  pr_dbg("i2c_adap_id=%d\n", i2c_adap_id);
-  desc = of_get_named_gpiod_flags(pdev->dev.of_node, "dtv_demod0_reset_gpio-gpios", 0, NULL);
-  gpio_reset = desc_to_gpio(desc);
-  pr_dbg("gpio_reset=%d\n", gpio_reset);
+	pr_inf("CONFIG_OF defined\n");
+	if (of_property_read_u32(pdev->dev.of_node,
+				 "dtv_demod0_i2c_adap_id",
+				 &i2c_adap_id))
+	{
+		pr_dbg("error getting i2c_adap_id, of_node=%s\n",
+		       pdev->dev.of_node->name);
+		ret = -ENOMEM;
+		goto err_resource;
+	}
+	pr_dbg("i2c_adap_id=%d\n", i2c_adap_id);
+	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
+					"dtv_demod0_reset_gpio-gpios",
+					0,
+					NULL);
+	gpio_reset = desc_to_gpio(desc);
+	pr_dbg("gpio_reset=%d\n", gpio_reset);
 
-  desc = of_get_named_gpiod_flags(pdev->dev.of_node, "dtv_demod0_power_gpio-gpios", 0, NULL);
-  gpio_power = desc_to_gpio(desc);
-  pr_dbg("gpio_power=%d\n", gpio_power);
+	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
+					"dtv_demod0_power_gpio-gpios",
+					0,
+					NULL);
+	gpio_power = desc_to_gpio(desc);
+	pr_dbg("gpio_power=%d\n", gpio_power);
 
-  if (of_property_read_u32(pdev->dev.of_node, "dtv_demod0_i2c_addr", &demod_i2c_addr))
-  {
-    pr_dbg("error getting dtv_demod0_i2c_addr, of_node=%s\n, using default", pdev->dev.of_node->name);
-  }
-  if (of_property_read_u32(pdev->dev.of_node, "dtv_demod0_tuner_i2c_addr", &tuner_i2c_addr))
-  {
-    pr_dbg("error getting dtv_demod0_tuner_i2c_addr, of_node=%s\n, using default", pdev->dev.of_node->name);
-  }
+	if (of_property_read_u32(pdev->dev.of_node,
+				 "dtv_demod0_i2c_addr",
+				 &demod_i2c_addr))
+	{
+		pr_dbg("error getting dtv_demod0_i2c_addr, of_node=%s\n, using default",
+		       pdev->dev.of_node->name);
+	}
+	if (of_property_read_u32(pdev->dev.of_node,
+				 "dtv_demod0_tuner_i2c_addr",
+				 &tuner_i2c_addr))
+	{
+		pr_dbg("error getting dtv_demod0_tuner_i2c_addr, of_node=%s\n, using default",
+		       pdev->dev.of_node->name);
+	}
 #endif /*CONFIG_OF*/
 
-  avl62x1_config.demod_address = (uint8_t)demod_i2c_addr;
-  avl62x1_config.tuner_address = (uint8_t)tuner_i2c_addr;
-  avl62x1_config.demod_refclk = 1; //27MHz
-  av201x_config.i2c_address = avl62x1_config.tuner_address;
-  av201x_config.id = ID_AV2018;
+	//config demod
+	avl62x1_config.chip_pub = &chip_pub;
+	chip_pub.i2c_addr = ((/*demod ID*/ (id & AVL_DEMOD_ID_MASK)) << 8) |
+			    ((uint8_t)demod_i2c_addr);
+	chip_pub.ref_clk = avl62x1_refclk_27mhz;
+	chip_pub.tuner_pol = avl62x1_specpol_inverted;
+	chip_pub.mpeg_mode = avl62x1_mpm_parallel;
+	chip_pub.mpeg_clk_pol = avl62x1_mpcp_rising;
+	chip_pub.mpeg_err_pol = avl62x1_mpep_normal;
+	chip_pub.mpeg_valid_pol = avl62x1_mpep_normal;
+	chip_pub.mpeg_clk_phase = avl62x1_mpcp_phase_0;
+	chip_pub.mpeg_clk_adapt = avl62x1_mpca_adaptive;
+	chip_pub.mpeg_format = avl62x1_mpf_ts;
+	chip_pub.mpeg_serial_pin = avl62x1_mpsp_data_0;
+	chip_pub.req_mpeg_clk_freq_hz = 120000000;
 
-  frontend_reset = gpio_reset;
-  frontend_power = gpio_power;
-  i2c_handle = i2c_get_adapter(i2c_adap_id);
+	//config tuner
+	av201x_config.i2c_address = (uint8_t)tuner_i2c_addr;
+	av201x_config.id = ID_AV2018;
 
-  if (!i2c_handle)
-  {
-    pr_err("Cannot get i2c adapter for id:%d! \n", i2c_adap_id);
-    ret = -ENOMEM;
-    goto err_resource;
-  }
+	frontend_reset = gpio_reset;
+	frontend_power = gpio_power;
+	i2c_handle = i2c_get_adapter(i2c_adap_id);
 
-  avl62x1_gpio();
-  avl62x1_Reset();
-  fe->fe = dvb_attach(avl62x1_attach, &avl62x1_config, i2c_handle);
+	if (!i2c_handle)
+	{
+		pr_err("Cannot get i2c adapter for id:%d! \n", i2c_adap_id);
+		ret = -ENOMEM;
+		goto err_resource;
+	}
 
-  if (!fe->fe)
-  {
-    pr_err("avl62x1_attach attach failed!!!\n");
-    ret = -ENOMEM;
-    goto err_resource;
-  }
-  demod_priv = (struct avl62x1_priv *)fe->fe->demodulator_priv;
+	avl62x1_gpio();
+	avl62x1_Reset();
+	fe->fe = dvb_attach(avl62x1_attach, &avl62x1_config, i2c_handle);
+
+	if (!fe->fe)
+	{
+		pr_err("avl62x1_attach attach failed!!!\n");
+		ret = -ENOMEM;
+		goto err_resource;
+	}
+	demod_priv = (struct avl62x1_priv *)fe->fe->demodulator_priv;
 
 #ifdef USE_AVL_201X
-  if (dvb_attach(av201x_avl_attach, fe->fe, &av201x_config, i2c_handle) == NULL)
+	if (dvb_attach(av201x_avl_attach,
+		       fe->fe,
+		       &av201x_config,
+		       i2c_handle,
+		       &(demod_priv->chip->chip_pub->tuner)) == NULL)
 #else
-  av201x_config.xtal_freq = 27000;
-  if (dvb_attach(av201x_attach, fe->fe, &av201x_config, i2c_handle) == NULL)
+	av201x_config.xtal_freq = 27000;
+	if(dvb_attach(av201x_attach, fe->fe, &av201x_config, i2c_handle) == NULL)
 #endif
-  {
-    dvb_frontend_detach(fe->fe);
-    fe->fe = NULL;
-    pr_err("av201x attach attach failed!!!\n");
-    ret = -ENOMEM;
-    goto err_resource;
-  }
-  
-#ifdef USE_AVL_201X
-  tuner_priv = (struct av201x_avl_priv *)fe->fe->tuner_priv;
-  demod_priv->chip->pTuner = tuner_priv->pTuner;
-#else
-  tuner_priv = (struct av201x_priv *)fe->fe->tuner_priv;
-#endif
+	{
+		dvb_frontend_detach(fe->fe);
+		fe->fe = NULL;
+		pr_err("av201x attach attach failed!!!\n");
+		ret = -ENOMEM;
+		goto err_resource;
+	}
 
-  pr_inf("AVL62x1 and AV201X attached!\n");
+	pr_inf("AVL62x1 and AV201X attached!\n");
 
-  if ((ret = dvb_register_frontend(&advb->dvb_adapter, fe->fe)))
-  {
-    pr_err("Frontend AVL62x1 registration failed!!!\n");
-    ops = &fe->fe->ops;
-    if (ops->release != NULL)
-      ops->release(fe->fe);
-    fe->fe = NULL;
-    ret = -ENOMEM;
-    goto err_resource;
-  }
+	if ((ret = dvb_register_frontend(&advb->dvb_adapter, fe->fe)))
+	{
+		pr_err("Frontend AVL62x1 registration failed!!!\n");
+		ops = &fe->fe->ops;
+		if (ops->release != NULL)
+			ops->release(fe->fe);
+		fe->fe = NULL;
+		ret = -ENOMEM;
+		goto err_resource;
+	}
 
-  pr_inf("Frontend AVL62x1 registered!\n");
+	pr_inf("Frontend AVL62x1 registered!\n");
 
-  return 0;
+	return 0;
 
 err_resource:
-  return ret;
+	return ret;
 }
 
 static int avl62x1_fe_probe(struct platform_device *pdev)
