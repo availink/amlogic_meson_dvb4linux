@@ -1,5 +1,5 @@
 ## amlogic_meson_dvb4linux
-This repository is our prototype for distributing Linux DVB drivers for our demodulator products.  Here, we have integrated our AVL6261 S/S2/S2X demodulator driver and our version of the Airoha AV201x tuner driver into a DVB frontend device for the Amlogic Meson SoC for use within the LibreELEC/CoreELEC embedded Linux distro.
+This repository is our prototype for distributing Linux DVB drivers for our demodulator products.  Here, we have integrated our AVL6261 S/S2/S2X demodulator driver and our version of the Airoha AV201x tuner driver into a DVB frontend device for the Amlogic Meson SoC.  We package the drivers into the CoreELEC distro as a proof of concept.
 
 ### Directory Structure
 ```
@@ -29,7 +29,7 @@ dvb-avl/
        \----availink/ : Firmware blobs that should be moved to /lib/firmware/availink
 ```
 
-### How to use with LibreELEC/CoreELEC
+### How to use with CoreELEC
 For now, these are a hackfest.
 * replace the dvb-avl directory in build.\<target\>/media_tree_cc_aml-\<hash\>/drivers/media/platform/meson/ with the one from this repository.
 * patch the packages/linux-driver-addons/dvb/crazycat_aml/package.mk file as follows:
@@ -70,7 +70,7 @@ index da4447d180..77f1d2e5d4 100644
 +  cp -ar ${amlogic_meson_dvb4linux}/firmware/availink "$PKG_FW_DIR"
  }
 </pre>
-* build LibreELEC/CoreELEC image
+* build CoreELEC image
   * The following relevant kernel modules will be built:
     * /lib/modules/3.14.29/updates/driver.dvb.crazycat_aml/avl_bsp.ko
     * /lib/modules/3.14.29/updates/driver.dvb.crazycat_aml/avl6261.ko
