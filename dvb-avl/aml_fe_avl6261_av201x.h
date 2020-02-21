@@ -1,6 +1,4 @@
-/*
- * SPDX-License-Identifier: GPL-2.0-or-later
-*/
+// SPDX-License-Identifier: GPL-2.0-or-later
 #ifndef _AML_FE_H_
 #define _AML_FE_H_
 

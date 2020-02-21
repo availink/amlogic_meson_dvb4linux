@@ -1,8 +1,5 @@
-/*
- * SPDX-License-Identifier: GPL-2.0-or-later
-*/
+// SPDX-License-Identifier: GPL-2.0-or-later
 
-//#define USE_AVL_201X
 
 #ifndef CONFIG_ARM64
 #include <mach/am_regs.h>
@@ -23,11 +20,7 @@
 #include "aml_fe_avl6261_av201x.h"
 
 #include "avl62x1.h"
-#ifdef USE_AVL_201X
-#include "av201x_avl_top.h"
-#else
 #include "av201x.h"
-#endif
 
 #include "aml_dvb.h"
 #undef pr_err
@@ -101,11 +94,7 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 
 	struct avl62x1_priv *demod_priv;
 
-#ifdef USE_AVL_201X
-	static struct av201x_avl_config av201x_config;
-#else
-	static struct av201x_config av201x_config;
-#endif
+	static struct av201x_config	av201x_config;
 
 	static struct avl62x1_config avl62x1_config;
 
@@ -174,6 +163,7 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 	//config tuner
 	av201x_config.i2c_address = (uint8_t)tuner_i2c_addr;
 	av201x_config.id = ID_AV2018;
+	av201x_config.xtal_freq = 27000;
 
 	frontend_reset = gpio_reset;
 	frontend_power = gpio_power;
@@ -198,16 +188,8 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 	}
 	demod_priv = (struct avl62x1_priv *)fe->fe->demodulator_priv;
 
-#ifdef USE_AVL_201X
-	if (dvb_attach(av201x_avl_attach,
-		       fe->fe,
-		       &av201x_config,
-		       i2c_handle,
-		       &(demod_priv->chip->chip_pub->tuner)) == NULL)
-#else
-	av201x_config.xtal_freq = 27000;
+
 	if(dvb_attach(av201x_attach, fe->fe, &av201x_config, i2c_handle) == NULL)
-#endif
 	{
 		dvb_frontend_detach(fe->fe);
 		fe->fe = NULL;
