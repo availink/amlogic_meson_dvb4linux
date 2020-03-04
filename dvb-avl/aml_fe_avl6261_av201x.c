@@ -149,7 +149,7 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 	chip_pub.i2c_addr = ((/*demod ID*/ (id & AVL_DEMOD_ID_MASK)) << 8) |
 			    ((uint8_t)demod_i2c_addr);
 	chip_pub.ref_clk = avl62x1_refclk_27mhz;
-	chip_pub.tuner_pol = avl62x1_specpol_inverted;
+	chip_pub.tuner_pol = avl62x1_specpol_normal;
 	chip_pub.mpeg_mode = avl62x1_mpm_parallel;
 	chip_pub.mpeg_clk_pol = avl62x1_mpcp_rising;
 	chip_pub.mpeg_err_pol = avl62x1_mpep_normal;
@@ -272,6 +272,7 @@ static const struct of_device_id aml_fe_dt_match[] = {
     },
     {},
 };
+//MODULE_DEVICE_TABLE(of, aml_fe_dt_match);
 #endif /*CONFIG_OF*/
 
 static struct platform_driver aml_fe_driver = {
@@ -280,7 +281,7 @@ static struct platform_driver aml_fe_driver = {
     .resume = avl62x1_fe_resume,
     .suspend = avl62x1_fe_suspend,
     .driver = {
-        .name = "avl62x1",
+        .name = "aml_fe",
         .owner = THIS_MODULE,
 #ifdef CONFIG_OF
         .of_match_table = aml_fe_dt_match,
