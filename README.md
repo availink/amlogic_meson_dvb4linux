@@ -23,9 +23,6 @@ cd CoreELEC
 git checkout HACKING_9.2.1
 cd
 git clone --recurse-submodules https://github.com/availink/amlogic_meson_dvb4linux.git
-cd amlogic_meson_dvb4linux
-git checkout development
-cd
 cd CoreELEC
 PROJECT=Amlogic DEVICES=S905 ARCH=arm make image
 </pre>
