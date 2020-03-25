@@ -20,6 +20,7 @@
 #include "aml_fe_avl6261_av201x.h"
 
 #include "avl62x1.h"
+#include "avl68x2.h"
 #include "av201x.h"
 
 #include "aml_dvb.h"
@@ -92,13 +93,15 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 	int gpio_reset, gpio_power;
 #endif
 
-	struct avl62x1_priv *demod_priv;
+	struct avl62x1_priv		*ex_priv;
+	static struct avl62x1_config	ex_config;
+	struct avl62x1_chip_pub		ex_pub;
 
 	static struct av201x_config	av201x_config;
 
-	static struct avl62x1_config avl62x1_config;
-
-	struct avl62x1_chip_pub chip_pub;
+	struct avl68x2_priv		e2_priv;
+	static struct avl68x2_config	e2_config;
+	struct avl68x2_chip_pub		e2_pub;
 
 	pr_inf("Init AVL62x1 frontend %d\n", id);
 
@@ -144,21 +147,33 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 	}
 #endif /*CONFIG_OF*/
 
+	e2_config.chip_pub = &e2_pub;
+	e2_pub.i2c_addr = ((/*demod ID*/ (id & AVL_DEMOD_ID_MASK)) << 8) |
+			  ((uint8_t)demod_i2c_addr);
+	e2_pub.xtal = Xtal_27M;
+	//FIXME e2_pub.tuner_pol = 
+	e2_pub.ts_config.eMode = AVL_TS_PARALLEL;
+	e2_pub.ts_config.eClockEdge = AVL_MPCM_RISING;
+	e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
+	e2_pub.ts_config.eClockMode = AVL_TS_CONTINUOUS_DISABLE;
+	e2_pub.ts_config.ePacketLen = AVL_TS_188;
+	e2_pub.ts_config.eSerialPin = AVL_MPSP_DATA0;
+
 	//config demod
-	avl62x1_config.chip_pub = &chip_pub;
-	chip_pub.i2c_addr = ((/*demod ID*/ (id & AVL_DEMOD_ID_MASK)) << 8) |
-			    ((uint8_t)demod_i2c_addr);
-	chip_pub.ref_clk = avl62x1_refclk_27mhz;
-	chip_pub.tuner_pol = avl62x1_specpol_normal;
-	chip_pub.mpeg_mode = avl62x1_mpm_parallel;
-	chip_pub.mpeg_clk_pol = avl62x1_mpcp_rising;
-	chip_pub.mpeg_err_pol = avl62x1_mpep_normal;
-	chip_pub.mpeg_valid_pol = avl62x1_mpep_normal;
-	chip_pub.mpeg_clk_phase = avl62x1_mpcp_phase_0;
-	chip_pub.mpeg_clk_adapt = avl62x1_mpca_adaptive;
-	chip_pub.mpeg_format = avl62x1_mpf_ts;
-	chip_pub.mpeg_serial_pin = avl62x1_mpsp_data_0;
-	chip_pub.req_mpeg_clk_freq_hz = 120000000;
+	ex_config.chip_pub = &ex_pub;
+	ex_pub.i2c_addr = ((/*demod ID*/ (id & AVL_DEMOD_ID_MASK)) << 8) |
+			  ((uint8_t)demod_i2c_addr);
+	ex_pub.ref_clk = avl62x1_refclk_27mhz;
+	ex_pub.tuner_pol = avl62x1_specpol_normal;
+	ex_pub.mpeg_mode = avl62x1_mpm_parallel;
+	ex_pub.mpeg_clk_pol = avl62x1_mpcp_rising;
+	ex_pub.mpeg_err_pol = avl62x1_mpep_normal;
+	ex_pub.mpeg_valid_pol = avl62x1_mpep_normal;
+	ex_pub.mpeg_clk_phase = avl62x1_mpcp_phase_0;
+	ex_pub.mpeg_clk_adapt = avl62x1_mpca_adaptive;
+	ex_pub.mpeg_format = avl62x1_mpf_ts;
+	ex_pub.mpeg_serial_pin = avl62x1_mpsp_data_0;
+	ex_pub.req_mpeg_clk_freq_hz = 120000000;
 
 	//config tuner
 	av201x_config.i2c_address = (uint8_t)tuner_i2c_addr;
@@ -178,7 +193,7 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 
 	avl62x1_gpio();
 	avl62x1_Reset();
-	fe->fe = dvb_attach(avl62x1_attach, &avl62x1_config, i2c_handle);
+	fe->fe = dvb_attach(avl62x1_attach, &ex_config, i2c_handle);
 
 	if (!fe->fe)
 	{
@@ -186,7 +201,7 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 		ret = -ENOMEM;
 		goto err_resource;
 	}
-	demod_priv = (struct avl62x1_priv *)fe->fe->demodulator_priv;
+	ex_priv = (struct avl62x1_priv *)fe->fe->demodulator_priv;
 
 
 	if(dvb_attach(av201x_attach, fe->fe, &av201x_config, i2c_handle) == NULL)
