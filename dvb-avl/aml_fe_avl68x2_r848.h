@@ -41,6 +41,11 @@
 #include <linux/amlogic/cpu_version.h>
 #include <linux/of_reserved_mem.h>
 
+enum aml_fe_dev_type_t {
+	AM_DEV_TUNER,
+	AM_DEV_ATV_DEMOD,
+	AM_DEV_DTV_DEMOD
+};
 
 struct aml_fe_dev;
 struct aml_fe;

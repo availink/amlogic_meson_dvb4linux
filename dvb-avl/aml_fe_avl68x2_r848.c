@@ -20,7 +20,7 @@
 #include "aml_fe_avl68x2_r848.h"
 
 #include "avl68x2.h"
-#include "r848.h"
+#include "r848a.h"
 
 #include "aml_dvb.h"
 #undef pr_err
@@ -50,6 +50,31 @@ static struct aml_fe avl68x2_fe[FE_DEV_COUNT];
 
 static char *device_name = "avl68x2";
 
+int avl68x2_reset(void)
+{
+  pr_dbg("avl68x2_reset 1\n");
+
+  gpio_request(frontend_reset, device_name);
+  gpio_direction_output(frontend_reset, 0);
+  msleep(600);
+  pr_dbg("avl68x2_reset 2\n");
+  gpio_request(frontend_reset, device_name);
+  gpio_direction_output(frontend_reset, 1);
+  msleep(200);
+  pr_dbg("avl68x2_reset 3\n");
+
+  return 0;
+}
+
+int avl68x2_gpio(void)
+{
+  pr_dbg("avl68x2_gpio\n");
+
+  gpio_request(frontend_power, device_name);
+  gpio_direction_output(frontend_power, 1);
+
+  return 0;
+}
 
 static int avl68x2_fe_init(struct aml_dvb *advb,
 			   struct platform_device *pdev,
@@ -59,7 +84,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	struct dvb_frontend_ops *ops;
 	int ret, i2c_adap_id = 1;
 	int demod_i2c_addr = 0x14;
-	int tuner_i2c_addr = 0x62;
+	int tuner_i2c_addr = 0x7A;
 
 	struct i2c_adapter *i2c_handle;
 #ifdef CONFIG_ARM64
@@ -67,11 +92,11 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	int gpio_reset, gpio_power;
 #endif
 
-	struct avl68x2_priv		e2_priv;
+	struct avl68x2_priv		*e2_priv;
 	static struct avl68x2_config	e2_config;
 	struct avl68x2_chip_pub		e2_pub;
 
-    static struct r848_config	r848_config;
+	static struct r848_config	r848_config;
 
 	pr_inf("Init AVL68x2 frontend %d\n", id);
 
@@ -100,21 +125,22 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 					NULL);
 	gpio_power = desc_to_gpio(desc);
 	pr_dbg("gpio_power=%d\n", gpio_power);
-
+#if 0  //HACK FIXME
 	if (of_property_read_u32(pdev->dev.of_node,
 				 "dtv_demod0_i2c_addr",
 				 &demod_i2c_addr))
 	{
-		pr_dbg("error getting dtv_demod0_i2c_addr, of_node=%s\n, using default",
+		pr_dbg("error getting dtv_demod0_i2c_addr, of_node=%s, using default\n",
 		       pdev->dev.of_node->name);
 	}
 	if (of_property_read_u32(pdev->dev.of_node,
 				 "dtv_demod0_tuner_i2c_addr",
 				 &tuner_i2c_addr))
 	{
-		pr_dbg("error getting dtv_demod0_tuner_i2c_addr, of_node=%s\n, using default",
+		pr_dbg("error getting dtv_demod0_tuner_i2c_addr, of_node=%s, using default\n",
 		       pdev->dev.of_node->name);
 	}
+#endif
 #endif /*CONFIG_OF*/
 
 	e2_config.chip_pub = &e2_pub;
@@ -122,7 +148,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 			  ((uint8_t)demod_i2c_addr);
 	e2_pub.xtal = Xtal_27M;
 	//FIXME e2_pub.tuner_pol = 
-	e2_pub.ts_config.eMode = AVL_TS_PARALLEL;
+	e2_pub.ts_config.eMode = AVL_TS_SERIAL;
 	e2_pub.ts_config.eClockEdge = AVL_MPCM_RISING;
 	e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
 	e2_pub.ts_config.eClockMode = AVL_TS_CONTINUOUS_DISABLE;
@@ -140,6 +166,10 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		goto err_resource;
 	}
 
+	avl68x2_reset();
+	avl68x2_gpio();
+	
+
 	fe->fe = dvb_attach(avl68x2_attach, &e2_config, i2c_handle);
 
 	if (!fe->fe)
@@ -148,10 +178,11 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		ret = -ENOMEM;
 		goto err_resource;
 	}
-	ex_priv = (struct avl68x2_priv *)fe->fe->demodulator_priv;
+	e2_priv = (struct avl68x2_priv *)fe->fe->demodulator_priv;
 
+	r848_config.i2c_address = tuner_i2c_addr;
 
-	if(dvb_attach(r848_attach, fe->fe, &r848_config, i2c_handle) == NULL)
+	if(dvb_attach(r848x_attach, fe->fe, &r848_config, i2c_handle) == NULL)
 	{
 		dvb_frontend_detach(fe->fe);
 		fe->fe = NULL;
@@ -160,7 +191,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		goto err_resource;
 	}
 
-	pr_inf("AVL68x2 and r848 attached!\n");
+	pr_inf("AVL68x2 and R848 attached!\n");
 
 	if ((ret = dvb_register_frontend(&advb->dvb_adapter, fe->fe)))
 	{
