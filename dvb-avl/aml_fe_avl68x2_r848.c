@@ -85,6 +85,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	int ret, i2c_adap_id = 1;
 	int demod_i2c_addr = 0x14;
 	int tuner_i2c_addr = 0x7A;
+	uint32_t ts_serial = 0;
 
 	struct i2c_adapter *i2c_handle;
 #ifdef CONFIG_ARM64
@@ -106,12 +107,13 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 				 "dtv_demod0_i2c_adap_id",
 				 &i2c_adap_id))
 	{
-		pr_dbg("error getting i2c_adap_id, of_node=%s\n",
+		pr_dbg("error getting 'i2c_adap_id', of_node=%s\n",
 		       pdev->dev.of_node->name);
 		ret = -ENOMEM;
 		goto err_resource;
 	}
 	pr_dbg("i2c_adap_id=%d\n", i2c_adap_id);
+
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_reset_gpio-gpios",
 					0,
@@ -125,35 +127,79 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 					NULL);
 	gpio_power = desc_to_gpio(desc);
 	pr_dbg("gpio_power=%d\n", gpio_power);
-#if 0  //HACK FIXME
+
+	if (of_property_read_u32(pdev->dev.of_node, "fe0_ts", &ts_serial))
+	{
+		pr_dbg("error getting 'fe0_ts', of_node=%s, using default\n",
+		       pdev->dev.of_node->name);
+	}
+
 	if (of_property_read_u32(pdev->dev.of_node,
 				 "dtv_demod0_i2c_addr",
 				 &demod_i2c_addr))
 	{
-		pr_dbg("error getting dtv_demod0_i2c_addr, of_node=%s, using default\n",
+		pr_dbg("error getting 'dtv_demod0_i2c_addr', of_node=%s, using default\n",
 		       pdev->dev.of_node->name);
 	}
 	if (of_property_read_u32(pdev->dev.of_node,
 				 "dtv_demod0_tuner_i2c_addr",
 				 &tuner_i2c_addr))
 	{
-		pr_dbg("error getting dtv_demod0_tuner_i2c_addr, of_node=%s, using default\n",
+		pr_dbg("error getting 'dtv_demod0_tuner_i2c_addr', of_node=%s, using default\n",
 		       pdev->dev.of_node->name);
 	}
-#endif
+
+	e2_pub.gpio_lock_led = 0;
+	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
+					"dtv_demod0_lock_gpio-gpios",
+					0,NULL);
+	if (!PTR_RET(desc))
+	{
+		e2_pub.gpio_lock_led = desc_to_gpio(desc);
+		pr_dbg("gpio_lock_led=%d\n", e2_pub.gpio_lock_led);
+	}
 #endif /*CONFIG_OF*/
 
 	e2_config.chip_pub = &e2_pub;
+
+	//copy config defaults
+	memcpy(&e2_pub.dvbtx_para,
+	       &default_dvbtx_config,
+	       sizeof(struct AVL_DVBTxConfig));
+	memcpy(&e2_pub.dvbsx_para,
+	       &default_dvbsx_config,
+	       sizeof(struct AVL_DVBSxConfig));
+	memcpy(&e2_pub.dvbc_para,
+	       &default_dvbc_config,
+	       sizeof(struct AVL_DVBCConfig));
+	memcpy(&e2_pub.isdbt_para,
+	       &default_isdbt_config,
+	       sizeof(struct AVL_ISDBTConfig));
+
 	e2_pub.i2c_addr = ((/*demod ID*/ (id & AVL_DEMOD_ID_MASK)) << 8) |
 			  ((uint8_t)demod_i2c_addr);
-	e2_pub.xtal = Xtal_27M;
+	e2_pub.xtal = Xtal_30M;
 	//FIXME e2_pub.tuner_pol = 
-	e2_pub.ts_config.eMode = AVL_TS_SERIAL;
-	e2_pub.ts_config.eClockEdge = AVL_MPCM_RISING;
-	e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
-	e2_pub.ts_config.eClockMode = AVL_TS_CONTINUOUS_DISABLE;
+	if(ts_serial)
+	{
+		e2_pub.ts_config.eMode = AVL_TS_SERIAL;
+		e2_pub.ts_config.eSerialPin = AVL_MPSP_DATA0;
+		e2_pub.ts_config.eClockEdge = AVL_MPCM_RISING;
+		e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
+		e2_pub.ts_config.eSerialOrder = AVL_MPBO_MSB;
+		e2_pub.ts_config.eSerialSyncPulse = AVL_TS_SERIAL_SYNC_1_PULSE;
+	}
+	else
+	{
+		e2_pub.ts_config.eMode = AVL_TS_PARALLEL;
+		e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
+		e2_pub.ts_config.eClockEdge = AVL_MPCM_RISING;
+	}
+	e2_pub.ts_config.eClockMode = AVL_TS_CONTINUOUS_ENABLE;
 	e2_pub.ts_config.ePacketLen = AVL_TS_188;
-	e2_pub.ts_config.eSerialPin = AVL_MPSP_DATA0;
+	e2_pub.ts_config.eValidPolarity = AVL_MPVP_Normal;
+	e2_pub.ts_config.eErrorPolarity = AVL_MPEP_Normal;
+	
 
 	frontend_reset = gpio_reset;
 	frontend_power = gpio_power;
