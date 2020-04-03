@@ -225,6 +225,9 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
 		e2_pub.ts_config.eClockEdge = AVL_MPCM_RISING;
 	}
+
+	e2_pub.ts_config.eParallelOrder = AVL_TS_PARALLEL_ORDER_NORMAL;
+	
 	e2_pub.ts_config.eClockMode = AVL_TS_CONTINUOUS_ENABLE;
 	e2_pub.ts_config.eValidPolarity = AVL_MPVP_Normal;
 	e2_pub.ts_config.eErrorPolarity = AVL_MPEP_Normal;
