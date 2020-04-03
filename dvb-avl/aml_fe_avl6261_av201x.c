@@ -20,7 +20,6 @@
 #include "aml_fe_avl6261_av201x.h"
 
 #include "avl62x1.h"
-#include "avl68x2.h"
 #include "av201x.h"
 
 #include "aml_dvb.h"
@@ -99,9 +98,6 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 
 	static struct av201x_config	av201x_config;
 
-	struct avl68x2_priv		e2_priv;
-	static struct avl68x2_config	e2_config;
-	struct avl68x2_chip_pub		e2_pub;
 
 	pr_inf("Init AVL62x1 frontend %d\n", id);
 
@@ -147,17 +143,6 @@ static int avl62x1_fe_init(struct aml_dvb *advb,
 	}
 #endif /*CONFIG_OF*/
 
-	e2_config.chip_pub = &e2_pub;
-	e2_pub.i2c_addr = ((/*demod ID*/ (id & AVL_DEMOD_ID_MASK)) << 8) |
-			  ((uint8_t)demod_i2c_addr);
-	e2_pub.xtal = Xtal_27M;
-	//FIXME e2_pub.tuner_pol = 
-	e2_pub.ts_config.eMode = AVL_TS_PARALLEL;
-	e2_pub.ts_config.eClockEdge = AVL_MPCM_RISING;
-	e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
-	e2_pub.ts_config.eClockMode = AVL_TS_CONTINUOUS_DISABLE;
-	e2_pub.ts_config.ePacketLen = AVL_TS_188;
-	e2_pub.ts_config.eSerialPin = AVL_MPSP_DATA0;
 
 	//config demod
 	ex_config.chip_pub = &ex_pub;

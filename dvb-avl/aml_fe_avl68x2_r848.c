@@ -52,28 +52,38 @@ static char *device_name = "avl68x2";
 
 int avl68x2_reset(void)
 {
-  pr_dbg("avl68x2_reset 1\n");
+	if (!frontend_reset)
+		return 0;
+	
+	pr_dbg("avl68x2_reset 1\n");
 
-  gpio_request(frontend_reset, device_name);
-  gpio_direction_output(frontend_reset, 0);
-  msleep(600);
-  pr_dbg("avl68x2_reset 2\n");
-  gpio_request(frontend_reset, device_name);
-  gpio_direction_output(frontend_reset, 1);
-  msleep(200);
-  pr_dbg("avl68x2_reset 3\n");
+	gpio_request(frontend_reset, device_name);
+	gpio_direction_output(frontend_reset, 0);
+	msleep(600);
+	pr_dbg("avl68x2_reset 2\n");
+	gpio_request(frontend_reset, device_name);
+	gpio_direction_output(frontend_reset, 1);
+	msleep(200);
+	pr_dbg("avl68x2_reset 3\n");
 
-  return 0;
+	return 0;
 }
 
-int avl68x2_gpio(void)
+int avl68x2_power(void)
 {
-  pr_dbg("avl68x2_gpio\n");
-
-  gpio_request(frontend_power, device_name);
-  gpio_direction_output(frontend_power, 1);
-
-  return 0;
+	if(!frontend_power)
+		return 0;
+	
+	pr_dbg("avl68x2_power 1\n");
+	gpio_request(frontend_power, device_name);
+	gpio_direction_output(frontend_power, 0);
+	msleep(1000);
+	pr_dbg("avl68x2_power 2\n");
+	gpio_request(frontend_power, device_name);
+	gpio_direction_output(frontend_power, 1);
+	msleep(200);
+	pr_dbg("avl68x2_power 3\n");
+	return 0;
 }
 
 static int avl68x2_fe_init(struct aml_dvb *advb,
@@ -86,11 +96,12 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	int demod_i2c_addr = 0x14;
 	int tuner_i2c_addr = 0x7A;
 	uint32_t ts_serial = 0;
+	uint32_t val;
 
 	struct i2c_adapter *i2c_handle;
 #ifdef CONFIG_ARM64
 	struct gpio_desc *desc;
-	int gpio_reset, gpio_power;
+	int gpio_reset = 0, gpio_power = 0;
 #endif
 
 	struct avl68x2_priv		*e2_priv;
@@ -114,18 +125,27 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	}
 	pr_dbg("i2c_adap_id=%d\n", i2c_adap_id);
 
+	e2_pub.gpio_fec_reset = 0;
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_reset_gpio-gpios",
 					0,
 					NULL);
-	gpio_reset = desc_to_gpio(desc);
+	if (!PTR_RET(desc))
+	{
+		gpio_reset = desc_to_gpio(desc);
+		e2_pub.gpio_fec_reset = gpio_reset;
+	}
 	pr_dbg("gpio_reset=%d\n", gpio_reset);
 
+	
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_power_gpio-gpios",
 					0,
 					NULL);
-	gpio_power = desc_to_gpio(desc);
+	if (!PTR_RET(desc))
+	{
+		gpio_power = desc_to_gpio(desc);
+	}
 	pr_dbg("gpio_power=%d\n", gpio_power);
 
 	if (of_property_read_u32(pdev->dev.of_node, "fe0_ts", &ts_serial))
@@ -136,18 +156,27 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 
 	if (of_property_read_u32(pdev->dev.of_node,
 				 "dtv_demod0_i2c_addr",
-				 &demod_i2c_addr))
+				 &val))
 	{
 		pr_dbg("error getting 'dtv_demod0_i2c_addr', of_node=%s, using default\n",
 		       pdev->dev.of_node->name);
 	}
+	else
+	{
+		demod_i2c_addr = val;
+	}
 	if (of_property_read_u32(pdev->dev.of_node,
 				 "dtv_demod0_tuner_i2c_addr",
-				 &tuner_i2c_addr))
+				 &val))
 	{
 		pr_dbg("error getting 'dtv_demod0_tuner_i2c_addr', of_node=%s, using default\n",
 		       pdev->dev.of_node->name);
 	}
+	else
+	{
+		tuner_i2c_addr = val;
+	}
+	
 
 	e2_pub.gpio_lock_led = 0;
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
@@ -156,8 +185,9 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	if (!PTR_RET(desc))
 	{
 		e2_pub.gpio_lock_led = desc_to_gpio(desc);
-		pr_dbg("gpio_lock_led=%d\n", e2_pub.gpio_lock_led);
 	}
+	pr_dbg("gpio_lock_led=%d\n", e2_pub.gpio_lock_led);
+
 #endif /*CONFIG_OF*/
 
 	e2_config.chip_pub = &e2_pub;
@@ -196,7 +226,6 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		e2_pub.ts_config.eClockEdge = AVL_MPCM_RISING;
 	}
 	e2_pub.ts_config.eClockMode = AVL_TS_CONTINUOUS_ENABLE;
-	e2_pub.ts_config.ePacketLen = AVL_TS_188;
 	e2_pub.ts_config.eValidPolarity = AVL_MPVP_Normal;
 	e2_pub.ts_config.eErrorPolarity = AVL_MPEP_Normal;
 	
@@ -212,8 +241,9 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		goto err_resource;
 	}
 
+	avl68x2_power();
 	avl68x2_reset();
-	avl68x2_gpio();
+	
 	
 
 	fe->fe = dvb_attach(avl68x2_attach, &e2_config, i2c_handle);
