@@ -1309,7 +1309,7 @@ static int aml_dvb_remove(struct platform_device *pdev)
 	aml_unregist_dmx_class();
 	class_unregister(&aml_stb_class);
 
-#if 1
+#if 0
 	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
 		if (advb->asyncfifo[i].id != -1)
 			aml_dvb_asyncfifo_release(advb, &advb->asyncfifo[i]);

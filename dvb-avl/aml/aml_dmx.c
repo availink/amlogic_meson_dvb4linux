@@ -3387,11 +3387,13 @@ static int dmx_add_feed(struct aml_dmx *dmx, struct dvb_demux_feed *feed)
 	struct dvb_demux_feed *dfeed = NULL;
 	int sf_ret = 0;		/*<0:error, =0:sf_on, >0:sf_off */
 
+#if 0
   //HACK TO MAKE dvbv5-zap work better
   if(feed->pid == 0x1fff) {
     feed->pes_type = DMX_PES_OTHER;
   }
-  
+#endif
+
 	sf_ret = sf_check_feed(dmx, feed, 1/*SF_FEED_OP_ADD */);
 	if (sf_ret < 0)
 		return sf_ret;
