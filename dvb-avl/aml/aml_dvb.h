@@ -340,5 +340,7 @@ void dmx_reset_dmx_hw_ex_unlock(struct aml_dvb *dvb,
 				struct aml_dmx *dmx,
 				int reset_irq);
 
+void dmx_reset_dmx_sw(int num);
+
 #endif
 

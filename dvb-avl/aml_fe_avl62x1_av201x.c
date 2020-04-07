@@ -17,7 +17,7 @@
 #include <linux/amlogic/aml_gpio_consumer.h>
 #include <linux/platform_device.h>
 
-#include "aml_fe_avl6261_av201x.h"
+#include "aml_fe_avl62x1_av201x.h"
 
 #include "avl62x1.h"
 #include "av201x.h"
@@ -239,6 +239,7 @@ static void avl62x1_fe_release(struct aml_dvb *advb, struct aml_fe *fe)
   {
     dvb_unregister_frontend(fe->fe);
     dvb_frontend_detach(fe->fe);
+    fe->fe = NULL;
   }
 }
 
@@ -281,7 +282,7 @@ static struct platform_driver aml_fe_driver = {
     .resume = avl62x1_fe_resume,
     .suspend = avl62x1_fe_suspend,
     .driver = {
-        .name = "aml_fe",
+        .name = "aml_fe_avl62x1_av201x",
         .owner = THIS_MODULE,
 #ifdef CONFIG_OF
         .of_match_table = aml_fe_dt_match,

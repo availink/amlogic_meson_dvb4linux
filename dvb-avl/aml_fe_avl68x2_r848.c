@@ -52,7 +52,7 @@ static char *device_name = "avl68x2";
 
 int avl68x2_reset(void)
 {
-	if (!frontend_reset)
+	if (frontend_reset < 0)
 		return 0;
 	
 	pr_dbg("avl68x2_reset 1\n");
@@ -63,7 +63,7 @@ int avl68x2_reset(void)
 	pr_dbg("avl68x2_reset 2\n");
 	gpio_request(frontend_reset, device_name);
 	gpio_direction_output(frontend_reset, 1);
-	msleep(200);
+	msleep(600);
 	pr_dbg("avl68x2_reset 3\n");
 
 	return 0;
@@ -71,7 +71,7 @@ int avl68x2_reset(void)
 
 int avl68x2_power(void)
 {
-	if(!frontend_power)
+	if(frontend_power < 0)
 		return 0;
 	
 	pr_dbg("avl68x2_power 1\n");
@@ -101,7 +101,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	struct i2c_adapter *i2c_handle;
 #ifdef CONFIG_ARM64
 	struct gpio_desc *desc;
-	int gpio_reset = 0, gpio_power = 0;
+	int gpio_reset = -1, gpio_power = -1;
 #endif
 
 	struct avl68x2_priv		*e2_priv;
@@ -286,6 +286,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	}
 
 	pr_inf("Frontend AVL68x2 registered!\n");
+	dmx_reset_dmx_sw(-1);
 
 	return 0;
 
@@ -313,6 +314,7 @@ static void avl68x2_fe_release(struct aml_dvb *advb, struct aml_fe *fe)
   {
     dvb_unregister_frontend(fe->fe);
     dvb_frontend_detach(fe->fe);
+		fe->fe = NULL;
   }
 }
 
@@ -355,7 +357,7 @@ static struct platform_driver aml_fe_driver = {
     .resume = avl68x2_fe_resume,
     .suspend = avl68x2_fe_suspend,
     .driver = {
-        .name = "aml_fe",
+        .name = "aml_fe_avl68x2_r848",
         .owner = THIS_MODULE,
 #ifdef CONFIG_OF
         .of_match_table = aml_fe_dt_match,
