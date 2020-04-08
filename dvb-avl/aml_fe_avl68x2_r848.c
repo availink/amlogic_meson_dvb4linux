@@ -218,6 +218,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
 		e2_pub.ts_config.eSerialOrder = AVL_MPBO_MSB;
 		e2_pub.ts_config.eSerialSyncPulse = AVL_TS_SERIAL_SYNC_1_PULSE;
+		printk("FE SERIAL\n");
 	}
 	else
 	{
@@ -225,6 +226,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
 		e2_pub.ts_config.eClockEdge = AVL_MPCM_RISING;
 		e2_pub.ts_config.eParallelOrder = AVL_TS_PARALLEL_ORDER_NORMAL;
+		printk("FE PARALLEL\n");
 	}
 
 	e2_pub.ts_config.eParallelOrder = AVL_TS_PARALLEL_ORDER_NORMAL;
