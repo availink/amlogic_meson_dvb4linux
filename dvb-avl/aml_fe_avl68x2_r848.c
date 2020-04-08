@@ -125,7 +125,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	}
 	pr_dbg("i2c_adap_id=%d\n", i2c_adap_id);
 
-	e2_pub.gpio_fec_reset = 0;
+	gpio_reset = -1;
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_reset_gpio-gpios",
 					0,
@@ -133,11 +133,11 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	if (!PTR_RET(desc))
 	{
 		gpio_reset = desc_to_gpio(desc);
-		e2_pub.gpio_fec_reset = gpio_reset;
 	}
+	e2_pub.gpio_fec_reset = gpio_reset;
 	pr_dbg("gpio_reset=%d\n", gpio_reset);
 
-	
+	gpio_power = -1;
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_power_gpio-gpios",
 					0,
@@ -178,7 +178,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	}
 	
 
-	e2_pub.gpio_lock_led = 0;
+	e2_pub.gpio_lock_led = -1;
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_lock_gpio-gpios",
 					0,NULL);
