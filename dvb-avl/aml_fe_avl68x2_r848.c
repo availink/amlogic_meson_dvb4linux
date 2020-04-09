@@ -286,6 +286,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	}
 
 	pr_inf("Frontend AVL68x2 registered!\n");
+	dmx_reset_dmx_sw(-1);
 
 	return 0;
 

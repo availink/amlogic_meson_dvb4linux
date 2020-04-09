@@ -1,13 +1,15 @@
 #
-# AVL6261 dvb driver configuration
+# AVL DVB driver configuration
 #
 
-menu "AVL6261 dvb driver"
+menu "Availink DVB drivers"
 
-config AVL6261
-	tristate "AVL6261 dvb driver"
+config AVLDVB
+	tristate "AVL DVB drivers"
 	default m
 	select DVB_CORE
 	help
-		Select to enable AVL6261 dvb driver.
+		Select to enable AVL DVB drivers.
+
+
 endmenu
