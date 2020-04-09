@@ -13,6 +13,7 @@
 #include <linux/init.h>
 #include <linux/delay.h>
 #include <linux/i2c.h>
+#include <linux/err.h>
 #include <linux/version.h>
 #include <linux/amlogic/aml_gpio_consumer.h>
 #include <linux/platform_device.h>
@@ -52,8 +53,8 @@ static char *device_name = "avl68x2";
 
 int avl68x2_reset(void)
 {
-	if (frontend_reset < 0)
-		return 0;
+	if (!gpio_is_valid(frontend_reset))
+		return 1;
 	
 	pr_dbg("avl68x2_reset 1\n");
 
@@ -71,8 +72,8 @@ int avl68x2_reset(void)
 
 int avl68x2_power(void)
 {
-	if(frontend_power < 0)
-		return 0;
+	if(!gpio_is_valid(frontend_power))
+		return 1;
 	
 	pr_dbg("avl68x2_power 1\n");
 	gpio_request(frontend_power, device_name);
@@ -107,6 +108,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	struct avl68x2_priv		*e2_priv;
 	static struct avl68x2_config	e2_config;
 	struct avl68x2_chip_pub		e2_pub;
+	e2_config.chip_pub = &e2_pub;
 
 	static struct r848_config	r848_config;
 
@@ -130,19 +132,19 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 					"dtv_demod0_reset_gpio-gpios",
 					0,
 					NULL);
-	if (!PTR_RET(desc))
+	if (!PTR_ERR_OR_ZERO(desc))
 	{
 		gpio_reset = desc_to_gpio(desc);
 	}
 	e2_pub.gpio_fec_reset = gpio_reset;
-	pr_dbg("gpio_reset=%d\n", gpio_reset);
+	pr_dbg("gpio_reset=%d\n", e2_pub.gpio_fec_reset);
 
 	gpio_power = -1;
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_power_gpio-gpios",
 					0,
 					NULL);
-	if (!PTR_RET(desc))
+	if (!PTR_ERR_OR_ZERO(desc))
 	{
 		gpio_power = desc_to_gpio(desc);
 	}
@@ -182,7 +184,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_lock_gpio-gpios",
 					0,NULL);
-	if (!PTR_RET(desc))
+	if (!PTR_ERR_OR_ZERO(desc))
 	{
 		e2_pub.gpio_lock_led = desc_to_gpio(desc);
 	}
@@ -190,25 +192,24 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 
 #endif /*CONFIG_OF*/
 
-	e2_config.chip_pub = &e2_pub;
-
 	//copy config defaults
-	memcpy(&e2_pub.dvbtx_para,
+	memcpy(&e2_pub.dvbtx_config,
 	       &default_dvbtx_config,
-	       sizeof(struct AVL_DVBTxConfig));
-	memcpy(&e2_pub.dvbsx_para,
+	       sizeof(default_dvbtx_config));
+	memcpy(&e2_pub.dvbsx_config,
 	       &default_dvbsx_config,
-	       sizeof(struct AVL_DVBSxConfig));
-	memcpy(&e2_pub.dvbc_para,
+	       sizeof(default_dvbsx_config));
+	memcpy(&e2_pub.dvbc_config,
 	       &default_dvbc_config,
-	       sizeof(struct AVL_DVBCConfig));
-	memcpy(&e2_pub.isdbt_para,
+	       sizeof(default_dvbc_config));
+	memcpy(&e2_pub.isdbt_config,
 	       &default_isdbt_config,
-	       sizeof(struct AVL_ISDBTConfig));
+	       sizeof(default_isdbt_config));
 
 	e2_pub.i2c_addr = ((/*demod ID*/ (id & AVL_DEMOD_ID_MASK)) << 8) |
 			  ((uint8_t)demod_i2c_addr);
 	e2_pub.xtal = Xtal_30M;
+	e2_pub.tc_tuner_type = AVL_REAL_IF;
 	//FIXME e2_pub.tuner_pol = 
 	if(ts_serial)
 	{
