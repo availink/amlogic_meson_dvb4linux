@@ -5457,7 +5457,7 @@ static int r848_set_params(struct dvb_frontend *fe)
 			dev_dbg("R848_SetPllData failed!!!\n");
 			return RT_Fail;
 		}
-		dev_dbg("R848_SetPllData for DVB-C\n");
+		dev_dbg("R848_SetPllData for ISDB-T\n");
 		dev_dbg("R848_SetStandard=%d\n", R848_INFO.R848_Standard);
 		dev_dbg("R848_SetFrequency=%d KHz\n", R848_INFO.RF_KHz);
 	break;
