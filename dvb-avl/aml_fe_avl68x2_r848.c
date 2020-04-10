@@ -53,6 +53,8 @@ static char *device_name = "avl68x2";
 
 int avl68x2_reset(void)
 {
+	if(frontend_reset < 0)
+		return 1;
 	if (!gpio_is_valid(frontend_reset))
 		return 1;
 	
@@ -72,6 +74,8 @@ int avl68x2_reset(void)
 
 int avl68x2_power(void)
 {
+	if(frontend_power < 0)
+		return 1;
 	if(!gpio_is_valid(frontend_power))
 		return 1;
 	
