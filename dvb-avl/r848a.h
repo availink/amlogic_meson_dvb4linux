@@ -277,7 +277,7 @@ typedef enum _R848_Standard_Type  //Don't remove standand list!!
 	R848_DVB_T_6M = R848_ATV_SIZE,
 	R848_DVB_T_7M,
 	R848_DVB_T_8M, 
-    R848_DVB_T2_6M,			//IF=4.57M
+	R848_DVB_T2_6M,			//IF=4.57M
 	R848_DVB_T2_7M,			//IF=4.57M
 	R848_DVB_T2_8M,			//IF=4.57M
 	R848_DVB_T2_1_7M,

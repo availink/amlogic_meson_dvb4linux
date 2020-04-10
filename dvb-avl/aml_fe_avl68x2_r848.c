@@ -52,7 +52,7 @@ static char *device_name = "avl68x2";
 
 int avl68x2_reset(void)
 {
-	if (!frontend_reset)
+	if (frontend_reset < 0)
 		return 0;
 	
 	pr_dbg("avl68x2_reset 1\n");
@@ -63,7 +63,7 @@ int avl68x2_reset(void)
 	pr_dbg("avl68x2_reset 2\n");
 	gpio_request(frontend_reset, device_name);
 	gpio_direction_output(frontend_reset, 1);
-	msleep(200);
+	msleep(600);
 	pr_dbg("avl68x2_reset 3\n");
 
 	return 0;
@@ -71,7 +71,7 @@ int avl68x2_reset(void)
 
 int avl68x2_power(void)
 {
-	if(!frontend_power)
+	if(frontend_power < 0)
 		return 0;
 	
 	pr_dbg("avl68x2_power 1\n");
@@ -101,7 +101,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	struct i2c_adapter *i2c_handle;
 #ifdef CONFIG_ARM64
 	struct gpio_desc *desc;
-	int gpio_reset = 0, gpio_power = 0;
+	int gpio_reset = -1, gpio_power = -1;
 #endif
 
 	struct avl68x2_priv		*e2_priv;
@@ -125,7 +125,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	}
 	pr_dbg("i2c_adap_id=%d\n", i2c_adap_id);
 
-	e2_pub.gpio_fec_reset = 0;
+	gpio_reset = -1;
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_reset_gpio-gpios",
 					0,
@@ -133,11 +133,11 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	if (!PTR_RET(desc))
 	{
 		gpio_reset = desc_to_gpio(desc);
-		e2_pub.gpio_fec_reset = gpio_reset;
 	}
+	e2_pub.gpio_fec_reset = gpio_reset;
 	pr_dbg("gpio_reset=%d\n", gpio_reset);
 
-	
+	gpio_power = -1;
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_power_gpio-gpios",
 					0,
@@ -178,7 +178,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	}
 	
 
-	e2_pub.gpio_lock_led = 0;
+	e2_pub.gpio_lock_led = -1;
 	desc = of_get_named_gpiod_flags(pdev->dev.of_node,
 					"dtv_demod0_lock_gpio-gpios",
 					0,NULL);
@@ -218,6 +218,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
 		e2_pub.ts_config.eSerialOrder = AVL_MPBO_MSB;
 		e2_pub.ts_config.eSerialSyncPulse = AVL_TS_SERIAL_SYNC_1_PULSE;
+		printk("FE SERIAL\n");
 	}
 	else
 	{
@@ -225,6 +226,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		e2_pub.ts_config.eParallelPhase = AVL_TS_PARALLEL_PHASE_0;
 		e2_pub.ts_config.eClockEdge = AVL_MPCM_RISING;
 		e2_pub.ts_config.eParallelOrder = AVL_TS_PARALLEL_ORDER_NORMAL;
+		printk("FE PARALLEL\n");
 	}
 
 	e2_pub.ts_config.eParallelOrder = AVL_TS_PARALLEL_ORDER_NORMAL;
@@ -314,6 +316,7 @@ static void avl68x2_fe_release(struct aml_dvb *advb, struct aml_fe *fe)
   {
     dvb_unregister_frontend(fe->fe);
     dvb_frontend_detach(fe->fe);
+		fe->fe = NULL;
   }
 }
 
@@ -356,7 +359,7 @@ static struct platform_driver aml_fe_driver = {
     .resume = avl68x2_fe_resume,
     .suspend = avl68x2_fe_suspend,
     .driver = {
-        .name = "aml_fe",
+        .name = "aml_fe_avl68x2_r848",
         .owner = THIS_MODULE,
 #ifdef CONFIG_OF
         .of_match_table = aml_fe_dt_match,

@@ -5450,6 +5450,17 @@ static int r848_set_params(struct dvb_frontend *fe)
 	R848_INFO.R848_Standard = R848_DVB_S;
 
 	switch (c->delivery_system) {
+	case SYS_ISDBT:
+		R848_INFO.RF_KHz = c->frequency / 1000;
+		R848_INFO.R848_Standard = R848_ISDB_T_IF_5M;
+		if(R848_SetPllData(priv, R848_INFO) != RT_Success) {
+			dev_dbg("R848_SetPllData failed!!!\n");
+			return RT_Fail;
+		}
+		dev_dbg("R848_SetPllData for DVB-C\n");
+		dev_dbg("R848_SetStandard=%d\n", R848_INFO.R848_Standard);
+		dev_dbg("R848_SetFrequency=%d KHz\n", R848_INFO.RF_KHz);
+	break;
 	case SYS_DVBC_ANNEX_A:
 	case SYS_DVBC_ANNEX_C:
 		R848_INFO.RF_KHz = c->frequency / 1000;

@@ -43,12 +43,12 @@
 #define CHANNEL_COUNT     31
 #define FILTER_COUNT      31
 #define FILTER_LEN        15
-#define DSC_DEV_COUNT     1
-#define DSC_COUNT         8
 #define SEC_BUF_GRP_COUNT 4
 #define SEC_BUF_BUSY_SIZE 4
 #define SEC_BUF_COUNT     (SEC_BUF_GRP_COUNT*8)
 #define ASYNCFIFO_COUNT   2
+
+#define DMX_OK	NULL
 
 typedef enum dmx_source {
 	DMX_SOURCE_FRONT0 = 0,
@@ -99,6 +99,13 @@ struct aml_channel {
 	struct dvb_demux_feed     *dvr_feed;
 };
 
+struct aml_ch_ignore {
+	int                  type;
+	enum dmx_ts_pes	pes_type;
+	int                  pid;
+	int                  used;
+};
+
 struct aml_filter {
 	int                  chan_id;
 	int                  used;
@@ -107,16 +114,6 @@ struct aml_filter {
 	u8                   maskandmode[FILTER_LEN];
 	u8                   maskandnotmode[FILTER_LEN];
 	u8                   neq;
-};
-
-struct aml_dsc {
-	int                  pid;
-	u8                   even[8];
-	u8                   odd[8];
-	int                  used;
-	int                  set;
-	int                  id;
-	struct aml_dvb      *dvb;
 };
 
 struct aml_smallsec {
@@ -170,6 +167,7 @@ struct aml_dmx {
 	unsigned long        sub_pages_map;
 	int                  sub_buf_len;
 	struct aml_channel   channel[CHANNEL_COUNT];
+	struct aml_ch_ignore ch_ignore[CHANNEL_COUNT];
 	struct aml_filter    filter[FILTER_COUNT];
 	irq_handler_t        irq_handler;
 	void                *irq_data;
@@ -241,14 +239,11 @@ struct aml_dvb {
 	struct aml_ts_input  ts[TS_IN_COUNT];
 	struct aml_s2p       s2p[S2P_COUNT];
 	struct aml_dmx       dmx[DMX_DEV_COUNT];
-	struct aml_dsc       dsc[DSC_COUNT];
 	struct aml_asyncfifo asyncfifo[ASYNCFIFO_COUNT];
-	struct dvb_device   *dsc_dev;
 	struct dvb_adapter   dvb_adapter;
 	struct device       *dev;
 	struct platform_device *pdev;
 	enum aml_ts_source_t      stb_source;
-	enum aml_ts_source_t      dsc_source;
 	enum aml_ts_source_t      tso_source;
 	int                  dmx_init;
 	int                  reset_flag;
@@ -267,7 +262,6 @@ extern int aml_dmx_hw_start_feed(struct dvb_demux_feed *dvbdmxfeed);
 extern int aml_dmx_hw_stop_feed(struct dvb_demux_feed *dvbdmxfeed);
 extern int aml_dmx_hw_set_source(struct dmx_demux *demux, dmx_source_t src);
 extern int aml_stb_hw_set_source(struct aml_dvb *dvb, dmx_source_t src);
-extern int aml_dsc_hw_set_source(struct aml_dvb *dvb, dmx_source_t src);
 extern int aml_tso_hw_set_source(struct aml_dvb *dvb, dmx_source_t src);
 
 extern int aml_dmx_set_skipbyte(struct aml_dvb *dvb, int skipbyte);
@@ -280,12 +274,6 @@ extern int  dmx_alloc_chan(struct aml_dmx *dmx, int type,
 extern void dmx_free_chan(struct aml_dmx *dmx, int cid);
 
 extern int dmx_get_ts_serial(enum aml_ts_source_t src);
-
-
-/*AMLogic dsc interface*/
-extern int dsc_set_pid(struct aml_dsc *dsc, int pid);
-extern int dsc_set_key(struct aml_dsc *dsc, int type, u8 *key);
-extern int dsc_release(struct aml_dsc *dsc);
 
 /*AMLogic ASYNC FIFO interface*/
 extern int aml_asyncfifo_hw_init(struct aml_asyncfifo *afifo);
