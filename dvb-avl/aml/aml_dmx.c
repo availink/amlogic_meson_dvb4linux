@@ -2443,22 +2443,6 @@ void dmx_reset_hw(struct aml_dvb *dvb)
 }
 
 
-void dmx_reset_dmx_sw(int num) /* -1 - all */
-{
-	struct aml_dvb *dvb = aml_get_dvb_device();
-	int i;
-
-	if(num < 0) {
-		for (i = 0; i < DMX_DEV_COUNT; i++)
-			dmx_reset_dmx_id_hw_ex(dvb, i, 0);
-		reset_async_fifos(dvb);
-	} else {
-		dmx_reset_dmx_id_hw_ex(dvb, num, 0);
-	}
-	msleep(150);
-}
-EXPORT_SYMBOL(dmx_reset_dmx_sw);
-
 /*Reset the demux device*/
 void dmx_reset_hw_ex(struct aml_dvb *dvb, int reset_irq)
 {
