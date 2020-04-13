@@ -316,6 +316,7 @@ struct devio_aml_platform_data {
 /*Reset the demux device*/
 void dmx_reset_hw(struct aml_dvb *dvb);
 void dmx_reset_hw_ex(struct aml_dvb *dvb, int reset_irq);
+void dmx_reset_dmx_sw(int num);
 
 /*Reset the individual demux*/
 void dmx_reset_dmx_hw(struct aml_dvb *dvb, int id);

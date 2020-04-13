@@ -102,6 +102,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	int tuner_i2c_addr = 0x7A;
 	uint32_t ts_serial = 0;
 	uint32_t val;
+	const char *str;
 
 	struct i2c_adapter *i2c_handle;
 #ifdef CONFIG_ARM64
@@ -112,11 +113,12 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 	struct avl68x2_priv		*e2_priv;
 	static struct avl68x2_config	e2_config;
 	struct avl68x2_chip_pub		e2_pub;
-	e2_config.chip_pub = &e2_pub;
 
 	static struct r848_config	r848_config;
 
 	pr_inf("Init AVL68x2 frontend %d\n", id);
+
+	e2_config.chip_pub = &e2_pub;
 
 #ifdef CONFIG_OF
 	pr_inf("CONFIG_OF defined\n");
@@ -193,6 +195,54 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 		e2_pub.gpio_lock_led = desc_to_gpio(desc);
 	}
 	pr_dbg("gpio_lock_led=%d\n", e2_pub.gpio_lock_led);
+
+	e2_pub.tc_agc_selection = AVL_TC_AGC_ONLY;
+	ret = of_property_read_string(pdev->dev.of_node,
+				      "dtv_demod0_tc_agc_sel",
+				      &str);
+	if(!ret)
+	{
+		if(!strcmp(str,"none"))
+		{
+			e2_pub.tc_agc_selection = AVL_NO_AGC;
+		}
+		else if(!strcmp(str,"tc_only"))
+		{
+			e2_pub.tc_agc_selection = AVL_TC_AGC_ONLY;
+		}
+		else if(!strcmp(str,"s_only"))
+		{
+			e2_pub.tc_agc_selection = AVL_S_AGC_ONLY;
+		}
+		else
+		{
+			e2_pub.tc_agc_selection = AVL_BOTH_AGC;
+		}
+	}
+
+	e2_pub.s_agc_selection = AVL_S_AGC_ONLY;
+	ret = of_property_read_string(pdev->dev.of_node,
+				      "dtv_demod0_s_agc_sel",
+				      &str);
+	if(!ret)
+	{
+		if(!strcmp(str,"none"))
+		{
+			e2_pub.s_agc_selection = AVL_NO_AGC;
+		}
+		else if(!strcmp(str,"tc_only"))
+		{
+			e2_pub.s_agc_selection = AVL_TC_AGC_ONLY;
+		}
+		else if(!strcmp(str,"s_only"))
+		{
+			e2_pub.s_agc_selection = AVL_S_AGC_ONLY;
+		}
+		else
+		{
+			e2_pub.s_agc_selection = AVL_BOTH_AGC;
+		}
+	}
 
 #endif /*CONFIG_OF*/
 
