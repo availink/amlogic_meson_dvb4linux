@@ -5583,9 +5583,9 @@ static const struct dvb_tuner_ops r848_tuner_ops = {
 	.info = {
 	.name           = "Rafael R848",
 
-		.frequency_min_hz  = 175 * MHz,
-		.frequency_max_hz  = 2150 * MHz,
-		.frequency_step_hz = 200 * kHz,
+		.frequency_min_hz  = 42 * MHz,
+		.frequency_max_hz  = 2300 * MHz,
+		.frequency_step_hz = 1 * kHz,
 	},
 
 	.release = r848_release,
