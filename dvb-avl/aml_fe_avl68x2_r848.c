@@ -264,7 +264,7 @@ static int avl68x2_fe_init(struct aml_dvb *advb,
 			  ((uint8_t)demod_i2c_addr);
 	e2_pub.xtal = Xtal_30M;
 	e2_pub.tc_tuner_type = AVL_REAL_IF;
-	//FIXME e2_pub.tuner_pol = 
+	e2_pub.tuner_pol = AVL_Spectrum_Normal;
 	if(ts_serial)
 	{
 		e2_pub.ts_config.eMode = AVL_TS_SERIAL;
