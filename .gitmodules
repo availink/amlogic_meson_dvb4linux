@@ -1,6 +1,3 @@
 [submodule "dvb-avl/dvb-frontends-availink"]
 	path = dvb-avl/dvb-frontends-availink
 	url = https://github.com/availink/dvb-frontends-availink.git
-[submodule "linux-firmware-availink"]
-	path = linux-firmware-availink
-	url = https://github.com/availink/linux-firmware-availink.git
