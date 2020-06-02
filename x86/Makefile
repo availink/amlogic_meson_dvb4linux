@@ -1,26 +1,36 @@
 TOP?=top
 
-obj-m := avl68x2.o
+obj-m := avl68x2.o avl62x1.o avl_bsp.o
 
-avl68x2-y := \
+avl_bsp-m := \
 dvb-avl/dvb-frontends-availink/availink/common/avl_bsp_linux.o \
-dvb-avl/dvb-frontends-availink/availink/avl68x2/avl68x2.o \
-dvb-avl/dvb-frontends-availink/availink/common/avl_lib.o \
-dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/AVL_Demod_DVBC.o \
-dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/AVL_Demod_CommonInternal.o \
-dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/AVL_Demod_ISDBT.o \
-dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/AVL_Demod_DVBSx.o \
-dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/AVL_Demod_DVBTx.o \
-dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/AVL_Demod.o
+dvb-avl/dvb-frontends-availink/availink/common/avl_lib.o
+
+avl62x1-m := \
+dvb-avl/dvb-frontends-availink/availink/avl62x1/avl62x1_top.o \
+dvb-avl/dvb-frontends-availink/availink/avl62x1/sdk_src/avl62x1_lib.o \
+dvb-avl/dvb-frontends-availink/availink/avl62x1/sdk_src/avl62x1_api.o
+
+
+avl68x2-m := \
+dvb-avl/dvb-frontends-availink/availink/avl68x2/avl68x2_top.o \
+dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/avl68x2_common.o \
+dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/avl68x2_internal.o \
+dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/avl68x2_dvbc.o \
+dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/avl68x2_isdbt.o \
+dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/avl68x2_dvbsx.o \
+dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src/avl68x2_dvbtx.o 
 
 
 #src?=$(shell pwd)
 
-vpath %.c $(src)/dvb-avl/dvb-frontends-availink/availink/common
-vpath %.c $(src)/dvb-avl/dvb-frontends-availink/availink/avl68x2
-vpath %.c $(src)/dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src
+#vpath %.c $(src)/dvb-avl/dvb-frontends-availink/availink/common
+#vpath %.c $(src)/dvb-avl/dvb-frontends-availink/availink/avl68x2
+#vpath %.c $(src)/dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src
 
 ccflags-y := -I$(src) -I$(src)/dvb-avl/dvb-frontends-availink/availink/common \
+-I$(src)/dvb-avl/dvb-frontends-availink/availink/avl62x1 \
+-I$(src)/dvb-avl/dvb-frontends-availink/availink/avl62x1/sdk_src \
 -I$(src)/dvb-avl/dvb-frontends-availink/availink/avl68x2 \
 -I$(src)/dvb-avl/dvb-frontends-availink/availink/avl68x2/sdk_src
 
