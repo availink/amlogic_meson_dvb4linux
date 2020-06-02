@@ -48,6 +48,7 @@ all: dvb-avl
 dvb-avl:
 ifeq ($(TOP),top)
 	cp -ar $(PWD)/../dvb-avl .
+	./version_check.sh
 endif
 
 clean:
