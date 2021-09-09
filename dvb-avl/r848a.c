@@ -5578,6 +5578,13 @@ static int r848_set_params(struct dvb_frontend *fe)
 
 	return ret;
 }
+static int r848_get_rf_strength(struct dvb_frontend *fe, u16 *strength) {
+	struct r848_priv *priv = fe->tuner_priv;
+  R848_RF_Gain_Info gain_info;  
+  R848_GetRfGain(priv, &gain_info);
+  *strength =  62000 - (gain_info.RF_gain_comb*100); // scale dBm x 1000 [0 -> -50dBm, 62000 - > +12dBm]
+	return 0;
+}
 
 static const struct dvb_tuner_ops r848_tuner_ops = {
 	.info = {
@@ -5593,6 +5600,7 @@ static const struct dvb_tuner_ops r848_tuner_ops = {
 	.init = r848_init,
 	.sleep = r848_sleep,
 	.set_params = r848_set_params,
+  .get_rf_strength = r848_get_rf_strength,
 };
 
 struct dvb_frontend *r848x_attach(struct dvb_frontend *fe,
